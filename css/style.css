@@ -11,4 +11,68 @@ body { transition: background-color .25s ease, color .25s ease; }
 .tile.dragging { opacity: .88; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2; }
 .tile.kb-selected { box-shadow: 0 0 0 3px rgba(59,130,246,.9) inset, 0 10px 18px rgba(0,0,0,.12); }
 .drop-target { outline: 3px dashed rgba(59,130,246,.7); outline-offset: -3px; }
-.hint-image { position:absolute; inset:0; z-index:0; opacity:.18; ba
+.hint-image { position:absolute; inset:0; z-index:0; opacity:.18; background-size:cover; background-position:center; border-radius:.8rem; pointer-events:none; }
+.reveal-image { position:absolute; inset:0; z-index:30; opacity:1; background-size:cover; background-position:center; border-radius:.8rem; display:none; }
+.hide { display:none; }
+.rotate-90 { transform: rotate(90deg); }
+.rotate-180 { transform: rotate(180deg); }
+.rotate-270 { transform: rotate(270deg); }
+
+/* 3초 힌트 플래시 */
+.hint-flash {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:min(60vw, 60%); height:min(60vh, 60%);
+  background-position:center; background-repeat:no-repeat; background-size:contain;
+  border-radius:1rem; box-shadow:0 20px 40px rgba(0,0,0,.35); z-index:40;
+}
+.hidden { display:none; }
+
+/* 출처 배지 */
+.attribution-badge{
+  position:absolute; bottom:8px; left:8px; z-index:35;
+  background: rgba(15,23,42,.8); color:#fff; font-size:.7rem; padding:.25rem .5rem;
+  border-radius:.4rem; text-decoration:none; backdrop-filter: saturate(160%) blur(4px);
+}
+.attribution-badge:hover{ background: rgba(15,23,42,.92); }
+
+/* Themes */
+.card { background: white; color: inherit; }
+body.theme-pastel { background: linear-gradient(180deg,#f8fafc,#f1f5f9); }
+body.theme-contrast { background:#0f172a; color:#f8fafc; }
+body.theme-contrast .card { background:#111827; color:#f8fafc; }
+body.theme-contrast .btn-primary { background:#2563eb !important; color:#fff; }
+body.theme-chalk { background:#0b3d2e; color:#e2e8f0; }
+body.theme-chalk .card { background:#114736; color:#e6f3ed; }
+
+/* Legibility in dark themes */
+.theme-contrast .text-slate-500, .theme-contrast label, .theme-contrast .sec .text-slate-500{ color:#cbd5e1 !important; }
+.theme-contrast input, .theme-contrast select{ background:#0b1220; color:#f8fafc; border-color:#334155; }
+.theme-chalk .text-slate-500, .theme-chalk label, .theme-chalk .sec .text-slate-500{ color:#dbeafe !important; }
+.theme-chalk input, .theme-chalk select{ background:#093526; color:#e6f3ed; border-color:#2a6956; }
+
+/* Tablet mode */
+body.tablet { --tile-gap: 10px; }
+body.tablet .tile { border-radius:.6rem; }
+
+/* Control section visuals */
+.sec { border:1px solid rgba(15,23,42,.08); border-radius:1rem; padding:12px; background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(248,250,252,.95)); }
+.sec.dark { background:linear-gradient(180deg,rgba(17,24,39,.9),rgba(30,41,59,.9)); border-color:rgba(255,255,255,.08); }
+.sec-title { display:flex; align-items:center; gap:.5rem; font-weight:700; }
+.badge { font-size:.7rem; padding:.15rem .45rem; border-radius:.6rem; background:#e2e8f0; color:#0f172a; }
+.badge.blue { background:#dbeafe; color:#1e40af; }
+.badge.green { background:#dcfce7; color:#166534; }
+.badge.purple { background:#ede9fe; color:#5b21b6; }
+.badge.orange { background:#ffedd5; color:#9a3412; }
+
+/* Toast */
+.toast { position:fixed; right:16px; top:16px; z-index:50; background:#111827; color:#fff; padding:.6rem .8rem; border-radius:.6rem; box-shadow:0 10px 24px rgba(0,0,0,.2); display:none; }
+
+/* 퀴즈 오버레이 */
+.quiz-overlay{
+  position:fixed; inset:0; background:rgba(2,6,23,.6); display:flex; align-items:center; justify-content:center; z-index:60;
+}
+.quiz-card{
+  width:min(720px, 92vw); background: white; color:#0f172a; border-radius:1rem; padding:16px; box-shadow:0 24px 60px rgba(0,0,0,.35);
+}
+body.theme-contrast .quiz-card{ background:#111827; color:#f8fafc; }
+body.theme-chalk .quiz-card{ background:#114736; color:#e6f3ed; }
