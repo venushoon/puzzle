@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>세계 국기·랜드마크 퍼즐</title>
-  <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800">
@@ -26,18 +24,15 @@
       </div>
     </header>
 
-    <!-- Board first, Controls right -->
     <section class="grid md:grid-cols-[1fr_420px] gap-6">
-      <!-- Board -->
+      <!-- 보드 -->
       <section class="space-y-3 order-1">
         <div id="imgTitle" class="text-sm text-slate-500"></div>
         <div id="boardWrap" class="relative card rounded-2xl shadow p-2">
           <div id="hint" class="hint-image rounded-xl"></div>
           <div id="reveal" class="reveal-image rounded-xl"></div>
           <div id="board" class="grid-board rounded-xl"></div>
-          <!-- 힌트 플래시(3초) -->
           <div id="hintFlash" class="hint-flash hidden"></div>
-          <!-- 출처 배지 -->
           <a id="attribution" class="attribution-badge hidden" href="#" target="_blank" rel="noopener noreferrer"></a>
         </div>
         <div id="status" class="text-sm"></div>
@@ -50,9 +45,9 @@
         </div>
       </section>
 
-      <!-- Control Panel (RIGHT) -->
+      <!-- 설정 패널(오른쪽) -->
       <aside class="order-2 space-y-4">
-        <!-- 섹션: 이미지 소스 -->
+        <!-- 이미지 소스 -->
         <section class="sec">
           <div class="sec-title mb-2"><span class="badge blue">이미지</span> 카테고리/선택</div>
           <div class="grid grid-cols-2 gap-2">
@@ -79,7 +74,7 @@
             </div>
             <div class="flex items-center gap-2 mt-1">
               <button id="btnApplyImage" class="px-2.5 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm">저장</button>
-              <span id="applyHint" class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장을 누르세요.</span>
+              <span class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장을 누르세요.</span>
             </div>
             <div class="mt-2">
               <div class="flex items-center justify-between">
@@ -91,7 +86,7 @@
           </div>
         </section>
 
-        <!-- 섹션: 난이도/테마 -->
+        <!-- 난이도/테마 -->
         <section class="sec">
           <div class="sec-title mb-2"><span class="badge purple">난이도</span> 프리셋 & 테마</div>
           <div class="grid grid-cols-2 gap-2">
@@ -124,7 +119,31 @@
           </div>
         </section>
 
-        <!-- 섹션: 학년별 프리셋 세트 -->
+        <!-- 옵션 & 타이머 (누락 복구) -->
+        <section class="sec">
+          <div class="sec-title mb-2"><span class="badge green">옵션</span> & 타이머</div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm"><input id="optHint" type="checkbox" checked> 힌트 사진 표시</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optGrid" type="checkbox" checked> 타일 경계선 표시</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optRotate" type="checkbox"> 회전 난이도(더블클릭/Space)</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optSound" type="checkbox" checked> 완료 시 축하음</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optTablet" type="checkbox"> 태블릿 PC 모드(탭-투-스왑)</label>
+          </div>
+          <div class="grid grid-cols-2 gap-3 items-end mt-3">
+            <div class="space-y-1">
+              <div class="text-sm font-medium">타이머</div>
+              <div class="flex items-baseline gap-3">
+                <div id="timer" class="text-2xl font-bold tabular-nums">00:00.0</div>
+                <div class="text-xs text-slate-500">베스트: <span id="best">—</span></div>
+              </div>
+            </div>
+            <div class="text-right text-xs text-slate-500">
+              Space: 회전 · Enter: 선택/교체 · ←↑→↓: 이동
+            </div>
+          </div>
+        </section>
+
+        <!-- 학년 프리셋 -->
         <section class="sec">
           <div class="sec-title mb-2"><span class="badge">학년</span> 프리셋 세트</div>
           <div class="grid grid-cols-2 gap-2">
@@ -145,7 +164,7 @@
           <p class="text-xs text-slate-500 mt-2">학년 프리셋을 고르면 난이도·조각수·회전·힌트·카테고리·세트 구성이 자동 적용됩니다.</p>
         </section>
 
-        <!-- 섹션: 세트 모드 -->
+        <!-- 세트 모드 -->
         <section class="sec">
           <div class="sec-title mb-2"><span class="badge orange">세트</span> 모드(모둠 대항)</div>
           <div class="grid grid-cols-2 gap-2 mb-2">
