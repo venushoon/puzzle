@@ -35,6 +35,12 @@
     body.theme-chalk { background:#0b3d2e; color:#e2e8f0; }
     body.theme-chalk .card { background:#114736; color:#e6f3ed; }
 
+    /* Improve legibility in dark themes */
+    .theme-contrast .text-slate-500, .theme-contrast label, .theme-contrast .sec .text-slate-500{ color:#cbd5e1 !important; }
+    .theme-contrast input, .theme-contrast select{ background:#0b1220; color:#f8fafc; border-color:#334155; }
+    .theme-chalk .text-slate-500, .theme-chalk label, .theme-chalk .sec .text-slate-500{ color:#dbeafe !important; }
+    .theme-chalk input, .theme-chalk select{ background:#093526; color:#e6f3ed; border-color:#2a6956; }
+
     /* Tablet mode */
     body.tablet { --tile-gap: 10px; }
     body.tablet .tile { border-radius:.6rem; }
@@ -58,7 +64,7 @@
     <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
       <div>
         <h1 class="text-2xl md:text-3xl font-bold">세계 국기·랜드마크 퍼즐</h1>
-        <p class="text-sm text-slate-500">설정 패널을 오른쪽으로 이동하고, 이미지 적용은 "저장" 버튼으로 반영돼요.</p>
+        <p class="text-sm text-slate-500">설정 패널은 오른쪽, 이미지 적용은 "저장" 버튼으로 반영돼요.</p>
       </div>
       <div class="flex gap-2 flex-wrap">
         <button id="btnNew" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 btn-primary">새 퍼즐</button>
@@ -69,7 +75,7 @@
     </header>
 
     <!-- Board first, Controls right -->
-    <section class="grid md:grid-cols-[1fr_380px] gap-6">
+    <section class="grid md:grid-cols-[1fr_400px] gap-6">
       <!-- Board -->
       <section class="space-y-3 order-1">
         <div id="imgTitle" class="text-sm text-slate-500"></div>
@@ -97,8 +103,8 @@
             <div>
               <label class="block text-xs text-slate-500 mb-1">카테고리</label>
               <select id="selCategory" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
-                <option value="flags">국기</option>
-                <option value="landmarks">랜드마크</option>
+                <option value="flags">국기(G20)</option>
+                <option value="landmarks">랜드마크(G20)</option>
               </select>
             </div>
             <div>
@@ -116,7 +122,7 @@
               <input id="urlInput" type="url" placeholder="https://…" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3" />
             </div>
             <div class="flex items-center gap-2 mt-1">
-              <button id="btnApplyImage" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">저장(이미지 적용)</button>
+              <button id="btnApplyImage" class="px-2.5 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm">저장</button>
               <span id="applyHint" class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장을 누르세요.</span>
             </div>
             <div class="mt-2">
@@ -144,8 +150,8 @@
               <select id="selTheme" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
                 <option value="default">기본</option>
                 <option value="pastel">파스텔</option>
-                <option value="contrast">하이컨트라스트</option>
-                <option value="chalk">칠판(교실)</option>
+                <option value="contrast">하이컨트라스트(가독 개선)</option>
+                <option value="chalk">칠판(교실·가독 개선)</option>
               </select>
             </div>
           </div>
@@ -204,23 +210,51 @@
   <audio id="successAudio"></audio>
 
   <script>
-    // ---------- Presets (Wikimedia images) ----------
+    // ---------- Presets ----------
     const PRESETS = {
+      // G20 flags (EU 제외, 한국 포함 19개국)
       flags: [
-        { name: '대한민국 국기', url: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Flag_of_South_Korea.svg' },
-        { name: '일본 국기', url: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Flag_of_Japan.svg' },
-        { name: '프랑스 국기', url: 'https://upload.wikimedia.org/wikipedia/en/c/c3/Flag_of_France.svg' },
-        { name: '미국 국기', url: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg' },
-        { name: '브라질 국기', url: 'https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg' },
-        { name: '인도 국기', url: 'https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg' }
+        { name: '대한민국', url: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Flag_of_South_Korea.svg' },
+        { name: '아르헨티나', url: 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_Argentina.svg' },
+        { name: '호주', url: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Flag_of_Australia.svg' },
+        { name: '브라질', url: 'https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg' },
+        { name: '캐나다', url: 'https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg' },
+        { name: '중국', url: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Flag_of_the_People%27s_Republic_of_China.svg' },
+        { name: '프랑스', url: 'https://upload.wikimedia.org/wikipedia/en/c/c3/Flag_of_France.svg' },
+        { name: '독일', url: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg' },
+        { name: '인도', url: 'https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg' },
+        { name: '인도네시아', url: 'https://upload.wikimedia.org/wikipedia/commons/9/9f/Flag_of_Indonesia.svg' },
+        { name: '이탈리아', url: 'https://upload.wikimedia.org/wikipedia/en/0/03/Flag_of_Italy.svg' },
+        { name: '일본', url: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Flag_of_Japan.svg' },
+        { name: '멕시코', url: 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Flag_of_Mexico.svg' },
+        { name: '러시아', url: 'https://upload.wikimedia.org/wikipedia/en/f/f3/Flag_of_Russia.svg' },
+        { name: '사우디아라비아', url: 'https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg' },
+        { name: '남아프리카 공화국', url: 'https://upload.wikimedia.org/wikipedia/commons/a/af/Flag_of_South_Africa.svg' },
+        { name: '튀르키예', url: 'https://upload.wikimedia.org/wikipedia/commons/b/b4/Flag_of_Turkey.svg' },
+        { name: '영국', url: 'https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg' },
+        { name: '미국', url: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg' }
       ],
+      // G20 landmark titles (이미지는 저장 시 Wikipedia API로 동적 로드)
       landmarks: [
-        { name: '에펠탑 (프랑스)', url: 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg' },
-        { name: '자유의 여신상 (미국)', url: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Statue_of_Liberty_7.jpg' },
-        { name: '만리장성 (중국)', url: 'https://upload.wikimedia.org/wikipedia/commons/1/10/20090529_Great_Wall_8185.jpg' },
-        { name: '타지마할 (인도)', url: 'https://upload.wikimedia.org/wikipedia/commons/1/1e/Taj_Mahal%2C_Agra%2C_India_edit3.jpg' },
-        { name: '콜로세움 (이탈리아)', url: 'https://upload.wikimedia.org/wikipedia/commons/d/de/Colosseo_2020.jpg' },
-        { name: '마추픽추 (페루)', url: 'https://upload.wikimedia.org/wikipedia/commons/e/eb/Machu_Picchu%2C_Peru.jpg' }
+        { name: '대한민국 · 경복궁', wikiTitle: 'Gyeongbokgung' },
+        { name: '아르헨티나 · 오벨리스크', wikiTitle: 'Obelisco de Buenos Aires' },
+        { name: '호주 · 시드니 오페라 하우스', wikiTitle: 'Sydney Opera House' },
+        { name: '브라질 · 구세주 그리스도상', wikiTitle: 'Christ the Redeemer (statue)' },
+        { name: '캐나다 · CN 타워', wikiTitle: 'CN Tower' },
+        { name: '중국 · 만리장성', wikiTitle: 'Great Wall of China' },
+        { name: '프랑스 · 에펠탑', wikiTitle: 'Eiffel Tower' },
+        { name: '독일 · 브란덴부르크 문', wikiTitle: 'Brandenburg Gate' },
+        { name: '인도 · 타지마할', wikiTitle: 'Taj Mahal' },
+        { name: '인도네시아 · 보로부두르', wikiTitle: 'Borobudur' },
+        { name: '이탈리아 · 콜로세움', wikiTitle: 'Colosseum' },
+        { name: '일본 · 후지산', wikiTitle: 'Mount Fuji' },
+        { name: '멕시코 · 치첸 이트사', wikiTitle: 'Chichen Itza' },
+        { name: '러시아 · 성 바실리 대성당', wikiTitle: 'Saint Basil\'s Cathedral' },
+        { name: '사우디아라비아 · 킹덤 센터', wikiTitle: 'Kingdom Centre' },
+        { name: '남아프리카 · 테이블 마운틴', wikiTitle: 'Table Mountain' },
+        { name: '튀르키예 · 아야 소피아', wikiTitle: 'Hagia Sophia' },
+        { name: '영국 · 엘리자베스 타워(빅벤)', wikiTitle: 'Elizabeth Tower' },
+        { name: '미국 · 자유의 여신상', wikiTitle: 'Statue of Liberty' }
       ]
     };
 
@@ -292,12 +326,7 @@
       setTimeout(()=> el.style.display='none', 1400);
     }
 
-    function fmt(ms){
-      const t = Math.max(0, ms|0);
-      const m = Math.floor(t/60000); const s = Math.floor((t%60000)/1000); const d = Math.floor((t%1000)/100);
-      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`;
-    }
-
+    function fmt(ms){ const t = Math.max(0, ms|0); const m = Math.floor(t/60000); const s = Math.floor((t%60000)/1000); const d = Math.floor((t%1000)/100); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`; }
     function keyForBest(){ return `${imgURL}|${rows}x${cols}|rot:${rotating}`; }
     function loadBest(){ const v = localStorage.getItem(keyForBest()); bestEl.textContent = v ? fmt(Number(v)) : '—'; }
     function saveBest(elapsed){ const k = keyForBest(); const v = localStorage.getItem(k); if(!v || Number(elapsed) < Number(v)){ localStorage.setItem(k, String(elapsed)); loadBest(); } }
@@ -309,7 +338,17 @@
 
     function setStatus(msg, ok=false){ statusEl.textContent = msg; statusEl.className = 'text-sm ' + (ok ? 'text-emerald-600' : 'text-slate-600'); }
 
-    function populateImages(){ const list = PRESETS[selCategory.value]; selImage.innerHTML = ''; list.forEach((it,i)=>{ const opt = document.createElement('option'); opt.value = it.url; opt.textContent = it.name; if(i===0) opt.selected = true; selImage.appendChild(opt); }); }
+    function populateImages(){
+      const list = PRESETS[selCategory.value];
+      selImage.innerHTML = '';
+      list.forEach((it,i)=>{
+        const opt = document.createElement('option');
+        opt.value = it.url || it.wikiTitle || '';
+        opt.textContent = it.name;
+        if(i===0) opt.selected = true;
+        selImage.appendChild(opt);
+      });
+    }
 
     function applyImage(url, title){ imgURL = url; imgTitle = title || ''; imgTitleEl.textContent = imgTitle ? `현재 이미지: ${imgTitle}` : ''; hint.style.backgroundImage = `url("${imgURL}")`; reveal.style.backgroundImage = `url("${imgURL}")`; loadBest(); saveRecent(url, title); renderRecent(); }
 
@@ -384,14 +423,31 @@
     function applyTheme(value){ document.body.classList.remove('theme-pastel','theme-contrast','theme-chalk'); if(value==='pastel') document.body.classList.add('theme-pastel'); else if(value==='contrast') document.body.classList.add('theme-contrast'); else if(value==='chalk') document.body.classList.add('theme-chalk'); }
 
     // ---------- Set Mode ----------
-    function startSet(){ if(setActive) return; const n = Math.max(2, Math.min(10, Number(setCountEl.value)||3)); teamName = (teamNameEl.value||'무명 팀').trim(); const pool = PRESETS[selCategory.value].slice(); setQueue = []; for(let i=0;i<n;i++){ if(pool.length===0) pool.push(...PRESETS[selCategory.value]); const j = (Math.random()*pool.length)|0; setQueue.push(pool.splice(j,1)[0]); } setTimes = []; setIdx = 0; setAccum = 0; setActive = true; spTeam.textContent = teamName; spProg.textContent = `${setIdx+1}/${setQueue.length}`; spAccum.textContent = '00:00.0'; setList.innerHTML = ''; setPanel.classList.remove('hidden'); const it = setQueue[0]; selImage.value = it.url; pendingImage = { url: it.url, title: it.name, blobUrl: null }; onApplyImage(); setStatus('세트 모드: 첫 퍼즐을 시작합니다.'); }
+    function startSet(){ if(setActive) return; const n = Math.max(2, Math.min(10, Number(setCountEl.value)||3)); teamName = (teamNameEl.value||'무명 팀').trim(); const pool = PRESETS[selCategory.value].slice(); setQueue = []; for(let i=0;i<n;i++){ if(pool.length===0) pool.push(...PRESETS[selCategory.value]); const j = (Math.random()*pool.length)|0; setQueue.push(pool.splice(j,1)[0]); } setTimes = []; setIdx = 0; setAccum = 0; setActive = true; spTeam.textContent = teamName; spProg.textContent = `${setIdx+1}/${setQueue.length}`; spAccum.textContent = '00:00.0'; setList.innerHTML = ''; setPanel.classList.remove('hidden'); const it = setQueue[0]; // if landmark uses wikiTitle, resolve first
+      if(it.wikiTitle){ pendingImage = { url:'', title: it.name, blobUrl:null, wikiTitle: it.wikiTitle }; resolvePendingIfLandmark().then(()=>{ onApplyImage(); }); }
+      else { selImage.value = it.url; pendingImage = { url: it.url, title: it.name, blobUrl: null }; onApplyImage(); }
+      setStatus('세트 모드: 첫 퍼즐을 시작합니다.'); }
     function stopSet(){ if(!setActive) return; setActive = false; setStatus(`세트 종료. 팀 ${teamName} · 누적 ${fmt(setAccum)}`); }
-    function onSetSolved(elapsed){ setTimes.push(elapsed); setAccum += elapsed; const li = document.createElement('li'); li.textContent = `${imgTitle} — ${fmt(elapsed)}`; setList.appendChild(li); spAccum.textContent = fmt(setAccum); setIdx++; if(setIdx < setQueue.length){ spProg.textContent = `${setIdx+1}/${setQueue.length}`; setTimeout(()=>{ const it = setQueue[setIdx]; selImage.value = it.url; pendingImage = { url: it.url, title: it.name, blobUrl: null }; onApplyImage(); }, 800); } else { setActive = false; spProg.textContent = `${setQueue.length}/${setQueue.length}`; const liTotal = document.createElement('li'); liTotal.className = 'mt-1 font-semibold'; liTotal.textContent = `합계 — ${fmt(setAccum)}`; setList.appendChild(liTotal); setStatus(`세트 완료! 팀 ${teamName} · 누적 ${fmt(setAccum)}`, true); } }
+    function onSetSolved(elapsed){ setTimes.push(elapsed); setAccum += elapsed; const li = document.createElement('li'); li.textContent = `${imgTitle} — ${fmt(elapsed)}`; setList.appendChild(li); spAccum.textContent = fmt(setAccum); setIdx++; if(setIdx < setQueue.length){ spProg.textContent = `${setIdx+1}/${setQueue.length}`; setTimeout(()=>{ const it = setQueue[setIdx]; if(it.wikiTitle){ pendingImage = { url:'', title: it.name, blobUrl:null, wikiTitle: it.wikiTitle }; resolvePendingIfLandmark().then(()=>{ onApplyImage(); }); } else { selImage.value = it.url; pendingImage = { url: it.url, title: it.name, blobUrl:null }; onApplyImage(); } }, 800); } else { setActive = false; spProg.textContent = `${setQueue.length}/${setQueue.length}`; const liTotal = document.createElement('li'); liTotal.className = 'mt-1 font-semibold'; liTotal.textContent = `합계 — ${fmt(setAccum)}`; setList.appendChild(liTotal); setStatus(`세트 완료! 팀 ${teamName} · 누적 ${fmt(setAccum)}`, true); } }
 
     // ---------- Recent images ----------
     function saveRecent(url, title){ try{ const k='puzzle_recent_imgs'; const obj = JSON.parse(localStorage.getItem(k)||'[]'); const filtered = obj.filter(it=>it.url!==url); filtered.unshift({url, title}); const capped = filtered.slice(0,6); localStorage.setItem(k, JSON.stringify(capped)); }catch(e){} }
     function loadRecent(){ try{ return JSON.parse(localStorage.getItem('puzzle_recent_imgs')||'[]'); }catch(e){ return []; } }
     function renderRecent(){ const arr = loadRecent(); recentWrap.innerHTML=''; arr.forEach(it=>{ const b=document.createElement('button'); b.className='text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-100'; b.textContent = it.title || it.url.split('/').pop(); b.title = it.url; b.addEventListener('click', ()=>{ pendingImage = { url: it.url, title: it.title||'', blobUrl:null }; onApplyImage(); }); recentWrap.appendChild(b); }); }
+
+    // ---------- Wikipedia resolver ----------
+    async function resolvePendingIfLandmark(){
+      if(pendingImage && !pendingImage.url && pendingImage.wikiTitle){
+        try{
+          const t = pendingImage.wikiTitle;
+          const api = `https://en.wikipedia.org/w/api.php?action=query&origin=*&prop=pageimages&format=json&piprop=original&titles=${encodeURIComponent(t)}`;
+          const res = await fetch(api); const j = await res.json();
+          const pages = j?.query?.pages || {}; const first = pages[Object.keys(pages)[0]];
+          const src = first?.original?.source;
+          if(src){ pendingImage.url = src; }
+        }catch(e){ console.warn('Wikipedia fetch failed', e); }
+      }
+    }
 
     // ---------- Apply image (Save button) ----------
     function onApplyImage(){ const { url, title, blobUrl } = pendingImage; const pick = blobUrl || url; if(!pick) return; applyImage(pick, title||''); buildBoard(); toast('이미지를 적용했습니다'); }
@@ -400,11 +456,30 @@
     function initSelectors(){
       populateImages(); renderRecent();
       // change handlers only set pending; actual apply on save
-      selImage.addEventListener('change', ()=>{ const item = PRESETS[selCategory.value].find(i=>i.url===selImage.value); pendingImage = { url: item?.url || selImage.value, title: item?.name || '', blobUrl:null }; });
-      selCategory.addEventListener('change', ()=>{ populateImages(); const item = PRESETS[selCategory.value][0]; selImage.value = item.url; pendingImage = { url:item.url, title:item.name, blobUrl:null }; });
+      selImage.addEventListener('change', ()=>{
+        const list = PRESETS[selCategory.value];
+        const optText = selImage.options[selImage.selectedIndex]?.text || '';
+        const item = list.find(i=> (i.url && i.url===selImage.value) || (i.wikiTitle && i.name===optText) ) || null;
+        if(item){
+          if(item.url){ pendingImage = { url: item.url, title: item.name, blobUrl:null }; }
+          else if(item.wikiTitle){ pendingImage = { url:'', title:item.name, blobUrl:null, wikiTitle:item.wikiTitle }; }
+        } else {
+          pendingImage = { url: selImage.value, title:'', blobUrl:null };
+        }
+      });
+
+      selCategory.addEventListener('change', ()=>{
+        populateImages();
+        const list = PRESETS[selCategory.value];
+        if(list && list.length){
+          if(list[0].url){ selImage.value = list[0].url; pendingImage = { url:list[0].url, title:list[0].name, blobUrl:null }; }
+          else { selImage.selectedIndex = 0; pendingImage = { url:'', title:list[0].name, blobUrl:null, wikiTitle:list[0].wikiTitle }; }
+        }
+      });
+
       fileInput.addEventListener('change', (e)=>{ const f = e.target.files?.[0]; if(!f) return; const url = URL.createObjectURL(f); pendingImage = { url, title: f.name, blobUrl:url }; });
       urlInput.addEventListener('change', ()=>{ if (!urlInput.value) return; pendingImage = { url:urlInput.value, title:'사용자 URL', blobUrl:null }; });
-      btnApplyImage.addEventListener('click', onApplyImage);
+      btnApplyImage.addEventListener('click', async ()=>{ await resolvePendingIfLandmark(); onApplyImage(); });
 
       document.querySelectorAll('input[name="pieces"]').forEach(r=>{ r.addEventListener('change', ()=>{ const v = Number(document.querySelector('input[name="pieces"]:checked').value); [rows, cols] = PIECE_LAYOUTS[v]; buildBoard(); markCustomIfChanged(); }); });
       optHint.addEventListener('change', ()=>{ hint.classList.toggle('hide', !optHint.checked); markCustomIfChanged(); });
@@ -423,7 +498,13 @@
       btnSetStart.addEventListener('click', startSet); btnSetStop.addEventListener('click', stopSet);
     }
 
-    function init(){ applyImage(imgURL, imgTitle); initSelectors(); applyDifficulty('normal'); applyTheme('default'); buildBoard(); }
+    function init(){ // boot
+      applyImage(imgURL, imgTitle);
+      initSelectors();
+      applyDifficulty('normal');
+      applyTheme('default');
+      buildBoard();
+    }
 
     window.addEventListener('resize', ()=>{});
     window.addEventListener('load', init);
