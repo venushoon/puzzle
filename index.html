@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>세계 국기·랜드마크 퍼즐</title>
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <main class="max-w-7xl mx-auto p-4 md:p-6">
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold">세계 국기·랜드마크 퍼즐</h1>
+        <p class="text-sm text-slate-500">설정 패널은 오른쪽, 이미지 적용은 "저장" 버튼으로 반영돼요.</p>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button id="btnNew" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 btn-primary">새 퍼즐</button>
+        <button id="btnShuffle" class="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800">섞기</button>
+        <button id="btnReset" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">초기화</button>
+        <button id="btnHintFlash" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700">힌트 보기(3초)</button>
+        <button id="btnReveal" class="px-4 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600">정답 공개</button>
+      </div>
+    </header>
+
+    <!-- Board first, Controls right -->
+    <section class="grid md:grid-cols-[1fr_420px] gap-6">
+      <!-- Board -->
+      <section class="space-y-3 order-1">
+        <div id="imgTitle" class="text-sm text-slate-500"></div>
+        <div id="boardWrap" class="relative card rounded-2xl shadow p-2">
+          <div id="hint" class="hint-image rounded-xl"></div>
+          <div id="reveal" class="reveal-image rounded-xl"></div>
+          <div id="board" class="grid-board rounded-xl"></div>
+          <!-- 힌트 플래시(3초) -->
+          <div id="hintFlash" class="hint-flash hidden"></div>
+        </div>
+        <div id="status" class="text-sm"></div>
+        <div id="setPanel" class="card rounded-2xl shadow p-3 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm"><span class="font-semibold">세트 진행</span> · 팀: <span id="spTeam"></span> · <span id="spProg"></span></div>
+            <div class="text-sm">누적: <span id="spAccum">00:00.0</span></div>
+          </div>
+          <ul id="setList" class="text-sm list-disc pl-5 space-y-1"></ul>
+        </div>
+      </section>
+
+      <!-- Control Panel (RIGHT) -->
+      <aside class="order-2 space-y-4">
+        <!-- 섹션: 이미지 소스 -->
+        <section class="sec">
+          <div class="sec-title mb-2"><span class="badge blue">이미지</span> 카테고리/선택</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">카테고리</label>
+              <select id="selCategory" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
+                <option value="flags">국기(G20)</option>
+                <option value="landmarks">랜드마크(G20)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">이미지 선택</label>
+              <select id="selImage" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3"></select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2 mt-3">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">직접 업로드</label>
+              <input id="fileInput" type="file" accept="image/*" class="w-full text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">이미지 URL</label>
+              <input id="urlInput" type="url" placeholder="https://…" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3" />
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <button id="btnApplyImage" class="px-2.5 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm">저장</button>
+              <span id="applyHint" class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장을 누르세요.</span>
+            </div>
+            <div class="mt-2">
+              <div class="text-xs text-slate-500 mb-1">최근 사용 이미지</div>
+              <div id="recentWrap" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 섹션: 난이도/테마 -->
+        <section class="sec">
+          <div class="sec-title mb-2"><span class="badge purple">난이도</span> 프리셋 & 테마</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">난이도 프리셋</label>
+              <select id="selDifficulty" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
+                <option value="easy">쉬움 (8·회전X·힌트O)</option>
+                <option value="normal" selected>보통 (12·회전X·힌트O)</option>
+                <option value="hard">어려움 (16·회전O·힌트X)</option>
+                <option value="custom">사용자 지정</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">테마 스킨</label>
+              <select id="selTheme" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
+                <option value="default">기본</option>
+                <option value="pastel">파스텔</option>
+                <option value="contrast">하이컨트라스트(가독 개선)</option>
+                <option value="chalk">칠판(교실·가독 개선)</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="block text-xs text-slate-500 mb-1">조각 수</label>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="pieces" value="8"> 8 (2×4)</label>
+              <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="pieces" value="12" checked> 12 (3×4)</label>
+              <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="pieces" value="16"> 16 (4×4)</label>
+            </div>
+          </div>
+        </section>
+
+        <!-- 섹션: 옵션/타이머 -->
+        <section class="sec">
+          <div class="sec-title mb-2"><span class="badge green">옵션</span> & 타이머</div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm"><input id="optHint" type="checkbox" checked> 힌트 사진 표시</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optGrid" type="checkbox" checked> 타일 경계선 표시</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optRotate" type="checkbox"> 회전 난이도(더블클릭/Space로 90°)</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optSound" type="checkbox" checked> 완료 시 축하음</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optTablet" type="checkbox"> 태블릿 PC 모드(탭-투-스왑)</label>
+          </div>
+          <div class="grid grid-cols-2 gap-3 items-end mt-3">
+            <div class="space-y-1">
+              <div class="text-sm font-medium">타이머</div>
+              <div class="flex items-baseline gap-3">
+                <div id="timer" class="text-2xl font-bold tabular-nums">00:00.0</div>
+                <div class="text-xs text-slate-500">베스트: <span id="best">—</span></div>
+              </div>
+            </div>
+            <div class="text-right text-xs text-slate-500">
+              Space: 회전 · Enter: 선택/교체 · ←↑→↓: 이동
+            </div>
+          </div>
+        </section>
+
+        <!-- 섹션: 학년별 프리셋 세트 -->
+        <section class="sec">
+          <div class="sec-title mb-2"><span class="badge">학년</span> 프리셋 세트</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">권장 프리셋</label>
+              <select id="selGrade" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
+                <option value="none" selected>선택 안 함</option>
+                <option value="g12">1~2학년: 국기 쉬움 6개</option>
+                <option value="g34">3~4학년: 랜드마크 보통 5개</option>
+                <option value="g56">5~6학년: G20 랜덤 어려움 6개</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">세트 문제 수</label>
+              <input id="setCount" type="number" min="2" max="10" value="3" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3" />
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">학년 프리셋을 고르면 난이도·조각수·회전·힌트·카테고리·세트 구성이 자동 적용됩니다.</p>
+        </section>
+
+        <!-- 섹션: 세트 모드 -->
+        <section class="sec">
+          <div class="sec-title mb-2"><span class="badge orange">세트</span> 모드(모둠 대항)</div>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <input id="teamName" class="rounded-lg border-slate-300 text-sm py-2.5 px-3" placeholder="모둠/팀 이름" />
+          </div>
+          <div class="flex gap-2">
+            <button id="btnSetStart" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">세트 시작</button>
+            <button id="btnSetStop" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300">세트 종료</button>
+          </div>
+          <div id="setInfo" class="text-xs text-slate-500 mt-2">선택한 카테고리/프리셋에서 연속 풀이, 누적 시간 합산</div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <div id="toast" class="toast">적용되었습니다.</div>
+  <audio id="successAudio" src="assets/success.mp3" preload="auto"></audio>
+  <script src="app.js"></script>
+</body>
+</html>
