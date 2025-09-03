@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>세계 국기·랜드마크 퍼즐</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { --tile-gap: 4px; }
+    body { transition: background-color .25s ease, color .25s ease; }
+    .grid-board { display: grid; gap: var(--tile-gap); position: relative; }
+    .tile {
+      background-size: var(--bg-w) var(--bg-h);
+      background-repeat: no-repeat;
+      user-select: none;
+      touch-action: none;
+      cursor: grab;
+      border-radius: 0.25rem;
+      transition: box-shadow .15s ease, transform .1s ease;
+      outline: none;
+    }
+    .tile:active { cursor: grabbing; }
+    .tile.dragging { opacity: .85; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2; }
+    .tile.kb-selected { box-shadow: 0 0 0 3px rgba(59,130,246,.9) inset, 0 10px 18px rgba(0,0,0,.15); }
+    .drop-target { outline: 3px dashed rgba(59,130,246,.7); outline-offset: -3px; }
+    .hint-image { position:absolute; inset:0; z-index:0; opacity:.18; background-size:cover; background-position:center; border-radius:.5rem; pointer-events:none; }
+    .reveal-image { position:absolute; inset:0; z-index:30; opacity:1; background-size:cover; background-position:center; border-radius:.5rem; display:none; }
+    .hide { display:none; }
+    .rotate-90 { transform: rotate(90deg); }
+    .rotate-180 { transform: rotate(180deg); }
+    .rotate-270 { transform: rotate(270deg); }
+
+    /* Themes */
+    .card { background: white; color: inherit; }
+    body.theme-pastel { background: linear-gradient(180deg,#f8fafc,#f1f5f9); }
+    body.theme-contrast { background:#0f172a; color:#f8fafc; }
+    body.theme-contrast .card { background:#111827; color:#f8fafc; }
+    body.theme-contrast .btn-primary { background:#2563eb !important; color:#fff; }
+    body.theme-chalk { background:#0b3d2e; color:#e2e8f0; }
+    body.theme-chalk .card { background:#114736; color:#e6f3ed; }
+
+    /* Tablet mode */
+    body.tablet { --tile-gap: 8px; }
+    body.tablet .tile { border-radius:.5rem; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <main class="max-w-7xl mx-auto p-4 md:p-6">
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold">세계 국기·랜드마크 퍼즐</h1>
+        <p class="text-sm text-slate-500">조각 수, 난이도, 힌트, 테마, 세트 모드까지 한번에!</p>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button id="btnNew" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 btn-primary">새 퍼즐</button>
+        <button id="btnShuffle" class="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800">섞기</button>
+        <button id="btnReset" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">초기화</button>
+        <button id="btnReveal" class="px-4 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600">정답 공개</button>
+      </div>
+    </header>
+
+    <section class="grid md:grid-cols-[360px_1fr] gap-6">
+      <!-- Control Panel -->
+      <aside class="card rounded-2xl shadow p-4 space-y-5">
+        <h2 class="font-semibold">설정</h2>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">카테고리</label>
+          <select id="selCategory" class="w-full rounded-lg border-slate-300">
+            <option value="flags">국기</option>
+            <option value="landmarks">랜드마크</option>
+          </select>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">이미지 선택</label>
+          <select id="selImage" class="w-full rounded-lg border-slate-300"></select>
+          <div class="text-xs text-slate-500">Wikimedia 예시 또는 아래에서 직접 업로드/URL 입력</div>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">직접 이미지</label>
+          <input id="fileInput" type="file" accept="image/*" class="w-full text-sm" />
+          <input id="urlInput" type="url" placeholder="이미지 URL 붙여넣기" class="w-full rounded-lg border-slate-300" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium">난이도 프리셋</label>
+            <select id="selDifficulty" class="w-full rounded-lg border-slate-300">
+              <option value="easy">쉬움 (8조각·회전X·힌트O)</option>
+              <option value="normal" selected>보통 (12조각·회전X·힌트O)</option>
+              <option value="hard">어려움 (16조각·회전O·힌트X)</option>
+              <option value="custom">사용자 지정</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium">테마 스킨</label>
+            <select id="selTheme" class="w-full rounded-lg border-slate-300">
+              <option value="default">기본</option>
+              <option value="pastel">파스텔</option>
+              <option value="contrast">하이컨트라스트</option>
+              <option value="chalk">칠판(교실)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">조각 수</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="pieces" value="8"> 8 (2×4)</label>
+            <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="pieces" value="12" checked> 12 (3×4)</label>
+            <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="pieces" value="16"> 16 (4×4)</label>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">옵션</label>
+          <label class="flex items-center gap-2 text-sm"><input id="optHint" type="checkbox" checked> 힌트 사진 표시</label>
+          <label class="flex items-center gap-2 text-sm"><input id="optGrid" type="checkbox" checked> 타일 경계선 표시</label>
+          <label class="flex items-center gap-2 text-sm"><input id="optRotate" type="checkbox"> 회전 난이도(더블클릭/Space로 90° 회전)</label>
+          <label class="flex items-center gap-2 text-sm"><input id="optSound" type="checkbox" checked> 완료 시 축하음</label>
+          <label class="flex items-center gap-2 text-sm"><input id="optTablet" type="checkbox"> 태블릿 PC 모드(드래그 대신 탭-투-스왑)</label>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 items-end">
+          <div class="space-y-1">
+            <div class="text-sm font-medium">타이머</div>
+            <div class="flex items-baseline gap-3">
+              <div id="timer" class="text-2xl font-bold tabular-nums">00:00.0</div>
+              <div class="text-xs text-slate-500">베스트: <span id="best">—</span></div>
+            </div>
+          </div>
+          <div class="text-right text-xs text-slate-500">
+            Space: 회전 · Enter: 선택/교체 · 화살표: 이동
+          </div>
+        </div>
+
+        <div class="border-t pt-3">
+          <h3 class="font-semibold text-sm mb-2">세트 모드(모둠 대항)</h3>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <input id="teamName" class="rounded-lg border-slate-300" placeholder="모둠/팀 이름" />
+            <input id="setCount" type="number" min="2" max="10" value="3" class="rounded-lg border-slate-300" placeholder="문제 수" />
+          </div>
+          <div class="flex gap-2">
+            <button id="btnSetStart" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">세트 시작</button>
+            <button id="btnSetStop" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300">세트 종료</button>
+          </div>
+          <div id="setInfo" class="text-xs text-slate-500 mt-2">세트를 시작하면 선택한 카테고리에서 랜덤 이미지를 연속으로 풉니다.</div>
+        </div>
+      </aside>
+
+      <!-- Board -->
+      <section class="space-y-3">
+        <div id="imgTitle" class="text-sm text-slate-500"></div>
+        <div id="boardWrap" class="relative card rounded-2xl shadow p-2">
+          <div id="hint" class="hint-image rounded-xl"></div>
+          <div id="reveal" class="reveal-image rounded-xl"></div>
+          <div id="board" class="grid-board rounded-xl"></div>
+        </div>
+        <div id="status" class="text-sm"></div>
+        <div id="setPanel" class="card rounded-2xl shadow p-3 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm"><span class="font-semibold">세트 진행</span> · 팀: <span id="spTeam"></span> · <span id="spProg"></span></div>
+            <div class="text-sm">누적: <span id="spAccum">00:00.0</span></div>
+          </div>
+          <ul id="setList" class="text-sm list-disc pl-5 space-y-1"></ul>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <audio id="successAudio"></audio>
+
+  <script>
+    // ---------- Presets (Wikimedia images) ----------
+    const PRESETS = {
+      flags: [
+        { name: '대한민국 국기', url: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Flag_of_South_Korea.svg' },
+        { name: '일본 국기', url: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Flag_of_Japan.svg' },
+        { name: '프랑스 국기', url: 'https://upload.wikimedia.org/wikipedia/en/c/c3/Flag_of_France.svg' },
+        { name: '미국 국기', url: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg' },
+        { name: '브라질 국기', url: 'https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg' },
+        { name: '인도 국기', url: 'https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg' }
+      ],
+      landmarks: [
+        { name: '에펠탑 (프랑스)', url: 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg' },
+        { name: '자유의 여신상 (미국)', url: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Statue_of_Liberty_7.jpg' },
+        { name: '만리장성 (중국)', url: 'https://upload.wikimedia.org/wikipedia/commons/1/10/20090529_Great_Wall_8185.jpg' },
+        { name: '타지마할 (인도)', url: 'https://upload.wikimedia.org/wikipedia/commons/1/1e/Taj_Mahal%2C_Agra%2C_India_edit3.jpg' },
+        { name: '콜로세움 (이탈리아)', url: 'https://upload.wikimedia.org/wikipedia/commons/d/de/Colosseo_2020.jpg' },
+        { name: '마추픽추 (페루)', url: 'https://upload.wikimedia.org/wikipedia/commons/e/eb/Machu_Picchu%2C_Peru.jpg' }
+      ]
+    };
+
+    const PIECE_LAYOUTS = { 8:[2,4], 12:[3,4], 16:[4,4] };
+    const DIFFICULTIES = {
+      easy:   { pieces:8,  rotate:false, hint:true },
+      normal: { pieces:12, rotate:false, hint:true },
+      hard:   { pieces:16, rotate:true,  hint:false }
+    };
+
+    // ---------- State ----------
+    let imgURL = PRESETS.flags[0].url;
+    let imgTitle = PRESETS.flags[0].name;
+    let rows = 3, cols = 4;
+    let rotating = false; // rotation difficulty
+    let started = false, solved = false;
+    let timerInterval = null, t0 = 0;
+    let order = []; // current order of indices
+    let revealOn = false;
+
+    // Set mode
+    let setActive = false;
+    let setQueue = [];
+    let setTimes = [];
+    let setIdx = 0;
+    let setAccum = 0;
+    let teamName = '';
+
+    // DOM refs
+    const selCategory = document.getElementById('selCategory');
+    const selImage = document.getElementById('selImage');
+    const fileInput = document.getElementById('fileInput');
+    const urlInput = document.getElementById('urlInput');
+    const optHint = document.getElementById('optHint');
+    const optGrid = document.getElementById('optGrid');
+    const optRotate = document.getElementById('optRotate');
+    const optSound = document.getElementById('optSound');
+    const optTablet = document.getElementById('optTablet');
+    const selDifficulty = document.getElementById('selDifficulty');
+    const selTheme = document.getElementById('selTheme');
+
+    const board = document.getElementById('board');
+    const hint = document.getElementById('hint');
+    const reveal = document.getElementById('reveal');
+    const timerEl = document.getElementById('timer');
+    const bestEl = document.getElementById('best');
+    const imgTitleEl = document.getElementById('imgTitle');
+    const statusEl = document.getElementById('status');
+    const successAudio = document.getElementById('successAudio');
+
+    // Set panel
+    const teamNameEl = document.getElementById('teamName');
+    const setCountEl = document.getElementById('setCount');
+    const btnSetStart = document.getElementById('btnSetStart');
+    const btnSetStop = document.getElementById('btnSetStop');
+    const setPanel = document.getElementById('setPanel');
+    const spTeam = document.getElementById('spTeam');
+    const spProg = document.getElementById('spProg');
+    const spAccum = document.getElementById('spAccum');
+    const setList = document.getElementById('setList');
+
+    // Keyboard selection
+    let kbSelected = null; // HTMLElement or null
+
+    function fmt(ms){
+      const t = Math.max(0, ms|0);
+      const m = Math.floor(t/60000); const s = Math.floor((t%60000)/1000); const d = Math.floor((t%1000)/100);
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`;
+    }
+
+    function keyForBest(){
+      return `${imgURL}|${rows}x${cols}|rot:${rotating}`;
+    }
+
+    function loadBest(){
+      const v = localStorage.getItem(keyForBest());
+      bestEl.textContent = v ? fmt(Number(v)) : '—';
+    }
+
+    function saveBest(elapsed){
+      const k = keyForBest();
+      const v = localStorage.getItem(k);
+      if(!v || Number(elapsed) < Number(v)){
+        localStorage.setItem(k, String(elapsed));
+        loadBest();
+      }
+    }
+
+    function startTimer(){
+      if (started) return; started = true; solved = false; t0 = performance.now();
+      timerInterval = setInterval(()=>{
+        timerEl.textContent = fmt(performance.now()-t0);
+      }, 100);
+    }
+
+    function stopTimer(){
+      if (timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+    }
+
+    function successTone(){
+      if(!optSound.checked) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type='triangle';
+      o.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+      o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.4);
+    }
+
+    function setStatus(msg, ok=false){
+      statusEl.textContent = msg;
+      statusEl.className = 'text-sm ' + (ok ? 'text-emerald-600' : 'text-slate-600');
+    }
+
+    function populateImages(){
+      const list = PRESETS[selCategory.value];
+      selImage.innerHTML = '';
+      list.forEach((it,i)=>{
+        const opt = document.createElement('option');
+        opt.value = it.url; opt.textContent = it.name; if(i===0) opt.selected = true;
+        selImage.appendChild(opt);
+      });
+    }
+
+    function applyImage(url, title){
+      imgURL = url; imgTitle = title || '';
+      imgTitleEl.textContent = imgTitle ? `현재 이미지: ${imgTitle}` : '';
+      hint.style.backgroundImage = `url("${imgURL}")`;
+      reveal.style.backgroundImage = `url("${imgURL}")`;
+      loadBest();
+    }
+
+    function buildBoard(){
+      // set grid
+      board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+      const total = rows*cols; order = Array.from({length: total}, (_,i)=>i);
+      // shuffle
+      for(let i=total-1;i>0;i--){ const j=(Math.random()* (i+1))|0; [order[i],order[j]]=[order[j],order[i]]; }
+
+      // clear
+      board.innerHTML='';
+
+      // create tiles
+      const rects = [];
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) rects.push({r,c});
+
+      order.forEach((srcIdx, posIdx)=>{
+        const {r, c} = rects[srcIdx]; // slice from original image
+        const tile = document.createElement('div');
+        tile.className = 'tile bg-slate-100';
+        tile.draggable = !optTablet.checked; // tablet: tap-to-swap
+        tile.tabIndex = 0;
+        tile.dataset.correct = String(srcIdx);
+        tile.dataset.pos = String(posIdx);
+        tile.dataset.rot = '0';
+
+        const bgX = (c/(cols-1))*100; // percent
+        const bgY = (r/(rows-1))*100;
+        tile.style.backgroundImage = `url("${imgURL}")`;
+        tile.style.backgroundPosition = `${bgX}% ${bgY}%`;
+        tile.style.aspectRatio = '1 / 1';
+        tile.style.border = optGrid.checked ? '1px solid rgba(0,0,0,.08)' : 'none';
+        tile.style.backgroundSize = `${cols*100}% ${rows*100}%`;
+
+        addDnD(tile);
+        addRotate(tile);
+        addKeyboard(tile);
+        addTapSwap(tile);
+        board.appendChild(tile);
+      });
+
+      // visual hint/reveal
+      hint.classList.toggle('hide', !optHint.checked);
+      reveal.style.display = revealOn ? 'block' : 'none';
+
+      // reset timer
+      stopTimer(); started = false; solved = false; timerEl.textContent = '00:00.0';
+      kbSelected = null;
+      setStatus('타일을 끌어 스왑하거나(태블릿: 탭-투-스왑) 풀어보세요.');
+    }
+
+    function addDnD(tile){
+      tile.addEventListener('dragstart', (e)=>{
+        tile.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', tile.dataset.pos);
+      });
+      tile.addEventListener('dragend', ()=> tile.classList.remove('dragging'));
+
+      tile.addEventListener('dragover', (e)=>{
+        if(optTablet.checked) return; // disable in tablet mode
+        e.preventDefault(); tile.classList.add('drop-target');
+      });
+      tile.addEventListener('dragleave', ()=> tile.classList.remove('drop-target'));
+
+      tile.addEventListener('drop', (e)=>{
+        if(optTablet.checked) return; // disable in tablet mode
+        e.preventDefault();
+        tile.classList.remove('drop-target');
+        const fromPos = Number(e.dataTransfer.getData('text/plain'));
+        const toPos = Number(tile.dataset.pos);
+        if (fromPos === toPos) return;
+        swapTiles(fromPos, toPos);
+      });
+    }
+
+    function addTapSwap(tile){
+      tile.addEventListener('click', ()=>{
+        if(!optTablet.checked) return; // only in tablet mode
+        if(!kbSelected){ kbSelected = tile; tile.classList.add('kb-selected'); return; }
+        if(kbSelected === tile){ kbSelected.classList.remove('kb-selected'); kbSelected=null; return; }
+        const fromPos = Number(kbSelected.dataset.pos);
+        const toPos = Number(tile.dataset.pos);
+        kbSelected.classList.remove('kb-selected'); kbSelected = null;
+        swapTiles(fromPos, toPos);
+      });
+    }
+
+    function addRotate(tile){
+      const applyRotCls = (el)=>{
+        el.classList.remove('rotate-90','rotate-180','rotate-270');
+        const deg = Number(el.dataset.rot);
+        if (deg===90) el.classList.add('rotate-90');
+        else if (deg===180) el.classList.add('rotate-180');
+        else if (deg===270) el.classList.add('rotate-270');
+      };
+      tile.addEventListener('dblclick', ()=>{
+        if(!rotating) return; 
+        const n = (Number(tile.dataset.rot)+90)%360; tile.dataset.rot = String(n); applyRotCls(tile); checkSolved();
+      });
+      tile.addEventListener('keydown', (e)=>{
+        if(!rotating) return;
+        if(e.code==='Space'){ e.preventDefault(); const n=(Number(tile.dataset.rot)+90)%360; tile.dataset.rot=String(n); applyRotCls(tile); checkSolved(); }
+        if(e.key==='r' || e.key==='R'){ e.preventDefault(); const n=(Number(tile.dataset.rot)+90)%360; tile.dataset.rot=String(n); applyRotCls(tile); checkSolved(); }
+      });
+      // initialize random rotation if rotating enabled
+      if (rotating){
+        const degs=[0,90,180,270];
+        tile.dataset.rot = String(degs[(Math.random()*4)|0]);
+        const d = Number(tile.dataset.rot);
+        if (d) tile.classList.add(`rotate-${d}`);
+      }
+    }
+
+    function addKeyboard(tile){
+      tile.addEventListener('keydown', (e)=>{
+        const key = e.key;
+        const pos = Number(tile.dataset.pos);
+        const rc = idxToRC(pos);
+        if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(key)) e.preventDefault();
+        if(key==='ArrowLeft') focusByRC(rc.r, rc.c-1);
+        if(key==='ArrowRight') focusByRC(rc.r, rc.c+1);
+        if(key==='ArrowUp') focusByRC(rc.r-1, rc.c);
+        if(key==='ArrowDown') focusByRC(rc.r+1, rc.c);
+
+        if(key==='Enter'){
+          e.preventDefault();
+          if(!kbSelected){ kbSelected = tile; tile.classList.add('kb-selected'); return; }
+          if(kbSelected === tile){ tile.classList.remove('kb-selected'); kbSelected=null; return; }
+          const fromPos = Number(kbSelected.dataset.pos);
+          const toPos = Number(tile.dataset.pos);
+          kbSelected.classList.remove('kb-selected'); kbSelected=null;
+          swapTiles(fromPos, toPos);
+        }
+      });
+    }
+
+    function focusByRC(r,c){
+      if(r<0||c<0||r>=rows||c>=cols) return;
+      const idx = r*cols + c;
+      const t = Array.from(board.children).find(x=>Number(x.dataset.pos)===idx);
+      if(t) t.focus();
+    }
+
+    function idxToRC(idx){ return { r: Math.floor(idx/cols), c: idx%cols }; }
+
+    function swapTiles(fromPos, toPos){
+      const tiles = Array.from(board.children);
+      const a = tiles.find(t=>Number(t.dataset.pos)===fromPos);
+      const b = tiles.find(t=>Number(t.dataset.pos)===toPos);
+      if(!a||!b) return;
+
+      // Start timer on first interaction
+      startTimer();
+
+      // swap DOM order by placeholder technique
+      const aNext = a.nextSibling;
+      const bNext = b.nextSibling;
+      const parent = a.parentNode;
+      parent.insertBefore(a, bNext);
+      parent.insertBefore(b, aNext);
+
+      // swap dataset.pos
+      [a.dataset.pos, b.dataset.pos] = [b.dataset.pos, a.dataset.pos];
+      checkSolved();
+    }
+
+    function checkSolved(){
+      const tiles = Array.from(board.children);
+      const ok = tiles.every(t=>{
+        const pos = Number(t.dataset.pos);
+        const correct = Number(t.dataset.correct);
+        const rot = Number(t.dataset.rot||'0');
+        const rotOK = rotating ? rot===0 : true;
+        return pos===correct && rotOK;
+      });
+      if (ok && !solved){
+        solved = true; stopTimer();
+        const elapsed = performance.now()-t0; saveBest(elapsed);
+        setStatus(`완료! 기록 ${fmt(elapsed)}`, true);
+        successTone();
+        if(setActive) onSetSolved(elapsed);
+      }
+    }
+
+    // ---------- Reveal Answer ----------
+    function toggleReveal(){
+      revealOn = !revealOn;
+      reveal.style.display = revealOn ? 'block' : 'none';
+      board.style.pointerEvents = revealOn ? 'none' : 'auto';
+      document.getElementById('btnReveal').textContent = revealOn ? '정답 숨기기' : '정답 공개';
+      setStatus(revealOn ? '정답을 표시 중입니다.' : '퍼즐 진행 중');
+    }
+
+    // ---------- Difficulty / Theme ----------
+    function applyDifficulty(name){
+      if(name==='custom') return; // user-controlled
+      const d = DIFFICULTIES[name];
+      // update UI controls to reflect preset
+      document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked = (Number(r.value)===d.pieces));
+      [rows, cols] = PIECE_LAYOUTS[d.pieces];
+      optRotate.checked = d.rotate; rotating = d.rotate;
+      optHint.checked = d.hint;
+      buildBoard();
+    }
+
+    function markCustomIfChanged(){
+      const current = {
+        pieces: Number(document.querySelector('input[name="pieces"]:checked').value),
+        rotate: optRotate.checked,
+        hint: optHint.checked
+      };
+      for(const [k,v] of Object.entries(DIFFICULTIES)){
+        if(current.pieces===v.pieces && current.rotate===v.rotate && current.hint===v.hint){ selDifficulty.value = k; return; }
+      }
+      selDifficulty.value = 'custom';
+    }
+
+    function applyTheme(value){
+      document.body.classList.remove('theme-pastel','theme-contrast','theme-chalk');
+      if(value==='pastel') document.body.classList.add('theme-pastel');
+      else if(value==='contrast') document.body.classList.add('theme-contrast');
+      else if(value==='chalk') document.body.classList.add('theme-chalk');
+    }
+
+    // ---------- Set Mode ----------
+    function startSet(){
+      if(setActive) return;
+      const n = Math.max(2, Math.min(10, Number(setCountEl.value)||3));
+      teamName = (teamNameEl.value||'무명 팀').trim();
+      const pool = PRESETS[selCategory.value].slice();
+      // pick n unique random
+      setQueue = [];
+      for(let i=0;i<n;i++){
+        if(pool.length===0) pool.push(...PRESETS[selCategory.value]);
+        const j = (Math.random()*pool.length)|0;
+        setQueue.push(pool.splice(j,1)[0]);
+      }
+      setTimes = []; setIdx = 0; setAccum = 0; setActive = true;
+      spTeam.textContent = teamName; spProg.textContent = `${setIdx+1}/${setQueue.length}`; spAccum.textContent = '00:00.0';
+      setList.innerHTML = '';
+      setPanel.classList.remove('hidden');
+      // load first
+      const it = setQueue[0]; selImage.value = it.url; applyImage(it.url, it.name); buildBoard();
+      setStatus('세트 모드: 첫 퍼즐을 시작합니다.');
+    }
+
+    function stopSet(){
+      if(!setActive) return;
+      setActive = false;
+      setStatus(`세트 종료. 팀 ${teamName} · 누적 ${fmt(setAccum)}`);
+    }
+
+    function onSetSolved(elapsed){
+      setTimes.push(elapsed); setAccum += elapsed;
+      const li = document.createElement('li');
+      li.textContent = `${imgTitle} — ${fmt(elapsed)}`;
+      setList.appendChild(li);
+      spAccum.textContent = fmt(setAccum);
+      setIdx++;
+      if(setIdx < setQueue.length){
+        spProg.textContent = `${setIdx+1}/${setQueue.length}`;
+        // next round after short pause
+        setTimeout(()=>{
+          const it = setQueue[setIdx]; selImage.value = it.url; applyImage(it.url, it.name); buildBoard();
+        }, 800);
+      } else {
+        setActive = false;
+        spProg.textContent = `${setQueue.length}/${setQueue.length}`;
+        const liTotal = document.createElement('li');
+        liTotal.className = 'mt-1 font-semibold';
+        liTotal.textContent = `합계 — ${fmt(setAccum)}`;
+        setList.appendChild(liTotal);
+        setStatus(`세트 완료! 팀 ${teamName} · 누적 ${fmt(setAccum)}`, true);
+      }
+    }
+
+    // ---------- Event wiring ----------
+    function initSelectors(){
+      populateImages();
+      selImage.addEventListener('change', ()=>{
+        const item = PRESETS[selCategory.value].find(i=>i.url===selImage.value);
+        applyImage(item?.url || selImage.value, item?.name || '');
+        buildBoard();
+      });
+      selCategory.addEventListener('change', ()=>{
+        populateImages();
+        const item = PRESETS[selCategory.value][0];
+        selImage.value = item.url; applyImage(item.url, item.name); buildBoard();
+      });
+
+      document.querySelectorAll('input[name="pieces"]').forEach(r=>{
+        r.addEventListener('change', ()=>{
+          const v = Number(document.querySelector('input[name="pieces"]:checked').value);
+          [rows, cols] = PIECE_LAYOUTS[v]; buildBoard(); markCustomIfChanged();
+        });
+      });
+
+      optHint.addEventListener('change', ()=>{ hint.classList.toggle('hide', !optHint.checked); markCustomIfChanged(); });
+      optGrid.addEventListener('change', ()=>{ Array.from(board.children).forEach(t=> t.style.border = optGrid.checked ? '1px solid rgba(0,0,0,.08)' : 'none'); });
+      optRotate.addEventListener('change', ()=>{ rotating = optRotate.checked; buildBoard(); markCustomIfChanged(); });
+      optTablet.addEventListener('change', ()=>{ document.body.classList.toggle('tablet', optTablet.checked); buildBoard(); });
+
+      selDifficulty.addEventListener('change', ()=> applyDifficulty(selDifficulty.value));
+      selTheme.addEventListener('change', ()=> applyTheme(selTheme.value));
+
+      document.getElementById('btnNew').addEventListener('click', ()=> buildBoard());
+      document.getElementById('btnShuffle').addEventListener('click', ()=> buildBoard());
+      document.getElementById('btnReset').addEventListener('click', ()=>{ stopTimer(); started=false; timerEl.textContent='00:00.0'; buildBoard(); });
+      document.getElementById('btnReveal').addEventListener('click', toggleReveal);
+
+      fileInput.addEventListener('change', (e)=>{
+        const f = e.target.files?.[0]; if(!f) return;
+        const url = URL.createObjectURL(f);
+        applyImage(url, f.name); buildBoard();
+      });
+
+      urlInput.addEventListener('change', ()=>{
+        if (!urlInput.value) return; applyImage(urlInput.value, '사용자 URL'); buildBoard();
+      });
+
+      btnSetStart.addEventListener('click', startSet);
+      btnSetStop.addEventListener('click', stopSet);
+    }
+
+    function init(){
+      // default: normal preset
+      applyImage(imgURL, imgTitle);
+      initSelectors();
+      applyDifficulty('normal');
+      applyTheme('default');
+      buildBoard();
+    }
+
+    window.addEventListener('resize', ()=>{ /* percent backgrounds handle responsiveness */ });
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
