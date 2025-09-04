@@ -12,9 +12,10 @@
     <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
       <div>
         <h1 class="text-2xl md:text-3xl font-bold">세계 국기·랜드마크 퍼즐</h1>
-        <p class="text-sm text-slate-500">설정 패널은 오른쪽, 이미지 적용은 "저장" 버튼으로 반영돼요.</p>
+        <p class="text-sm text-slate-500">설정 패널은 오른쪽, 이미지는 “저장”을 누르면 적용됨.</p>
       </div>
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex gap-2 flex-wrap items-center">
+        <button id="btnToggleMode" class="px-3 py-2 rounded-xl bg-black/80 text-white hover:bg-black">학생 모드</button>
         <button id="btnNew" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 btn-primary">새 퍼즐</button>
         <button id="btnShuffle" class="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800">섞기</button>
         <button id="btnReset" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">초기화</button>
@@ -24,7 +25,7 @@
       </div>
     </header>
 
-    <section class="grid md:grid-cols-[1fr_420px] gap-6">
+    <section id="layout" class="grid md:grid-cols-[1fr_420px] gap-6">
       <!-- 보드 -->
       <section class="space-y-3 order-1">
         <div id="imgTitle" class="text-sm text-slate-500"></div>
@@ -46,7 +47,7 @@
       </section>
 
       <!-- 설정 패널(오른쪽) -->
-      <aside class="order-2 space-y-4">
+      <aside id="controlPanel" class="order-2 space-y-4">
         <!-- 이미지 소스 -->
         <section class="sec">
           <div class="sec-title mb-2"><span class="badge blue">이미지</span> 카테고리/선택</div>
@@ -74,7 +75,7 @@
             </div>
             <div class="flex items-center gap-2 mt-1">
               <button id="btnApplyImage" class="px-2.5 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm">저장</button>
-              <span class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장을 누르세요.</span>
+              <span class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장을 누름.</span>
             </div>
             <div class="mt-2">
               <div class="flex items-center justify-between">
@@ -119,15 +120,15 @@
           </div>
         </section>
 
-        <!-- 옵션 & 타이머 (누락 복구) -->
+        <!-- 옵션 & 타이머 -->
         <section class="sec">
           <div class="sec-title mb-2"><span class="badge green">옵션</span> & 타이머</div>
           <div class="space-y-2">
-            <label class="flex items-center gap-2 text-sm"><input id="optHint" type="checkbox" checked> 힌트 사진 표시</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optGrid" type="checkbox" checked> 타일 경계선 표시</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optRotate" type="checkbox"> 회전 난이도(더블클릭/Space)</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optSound" type="checkbox" checked> 완료 시 축하음</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optTablet" type="checkbox"> 태블릿 PC 모드(탭-투-스왑)</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optHint" type="checkbox" checked> 힌트 사진 표시함.</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optGrid" type="checkbox" checked> 타일 경계선 보임.</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optRotate" type="checkbox"> 회전 난이도 사용함.</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optSound" type="checkbox" checked> 완료 시 축하음 재생함.</label>
+            <label class="flex items-center gap-2 text-sm"><input id="optTablet" type="checkbox"> 태블릿 모드(탭-스왑) 사용함.</label>
           </div>
           <div class="grid grid-cols-2 gap-3 items-end mt-3">
             <div class="space-y-1">
@@ -138,7 +139,7 @@
               </div>
             </div>
             <div class="text-right text-xs text-slate-500">
-              Space: 회전 · Enter: 선택/교체 · ←↑→↓: 이동
+              Space: 회전 · Enter: 교체 · ←↑→↓: 이동
             </div>
           </div>
         </section>
@@ -158,10 +159,10 @@
             </div>
             <div>
               <label class="block text-xs text-slate-500 mb-1">세트 문제 수</label>
-              <input id="setCount" type="number" min="2" max="10" value="3" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3" />
+              <input id="setCount" type="number" min="2" max="10" value="6" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3" />
             </div>
           </div>
-          <p class="text-xs text-slate-500 mt-2">학년 프리셋을 고르면 난이도·조각수·회전·힌트·카테고리·세트 구성이 자동 적용됩니다.</p>
+          <p class="text-xs text-slate-500 mt-2">학년 프리셋을 고르면 난이도·조각수·회전·힌트·카테고리·세트를 자동 적용함.</p>
         </section>
 
         <!-- 세트 모드 -->
@@ -174,7 +175,7 @@
             <button id="btnSetStart" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">세트 시작</button>
             <button id="btnSetStop" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300">세트 종료</button>
           </div>
-          <div id="setInfo" class="text-xs text-slate-500 mt-2">선택한 카테고리/프리셋에서 연속 풀이, 누적 시간 합산</div>
+          <div id="setInfo" class="text-xs text-slate-500 mt-2">여러 문제를 연속 풀이하고 누적 시간으로 경쟁함.</div>
         </section>
       </aside>
     </section>
@@ -191,7 +192,7 @@
     </div>
   </div>
 
-  <div id="toast" class="toast">적용되었습니다.</div>
+  <div id="toast" class="toast">적용됨.</div>
   <audio id="successAudio" src="assets/success.mp3" preload="auto"></audio>
   <script src="app.js"></script>
 </body>
