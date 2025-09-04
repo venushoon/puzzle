@@ -20,12 +20,11 @@
         <button id="btnShuffle" class="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800">섞기</button>
         <button id="btnReset" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">초기화</button>
         <button id="btnHintFlash" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700">힌트(3초)</button>
-        <button id="btnQuiz" class="px-4 py-2 rounded-xl bg-teal-600 text-white hover:bg-teal-700">퀴즈</button>
         <button id="btnReveal" class="px-4 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600">정답 공개</button>
       </div>
     </header>
 
-    <!-- 학생 모드 전용 상단 툴바 -->
+    <!-- 학생 모드 툴바 -->
     <div id="studentToolbar" class="hidden mb-3">
       <div class="card rounded-xl px-3 py-2 flex flex-wrap items-center gap-2">
         <span class="text-xs text-slate-500 mr-1">화면 제어</span>
@@ -41,11 +40,10 @@
     </div>
 
     <section id="layout" class="grid md:grid-cols-[1fr_420px] gap-6">
-      <!-- 보드 -->
+      <!-- 퍼즐 보드 -->
       <section class="space-y-3 order-1">
         <div id="imgTitle" class="text-sm text-slate-500"></div>
 
-        <!-- 확대/축소 스테이지 -->
         <div id="stageOuter" class="relative">
           <div id="stageInner" class="origin-top-left w-full">
             <div id="boardWrap" class="relative card rounded-2xl shadow p-2">
@@ -69,7 +67,7 @@
         </div>
       </section>
 
-      <!-- 설정 패널(오른쪽, 구분감 강화) -->
+      <!-- 설정 패널 -->
       <aside id="controlPanel" class="order-2 space-y-5 md:sticky md:top-4">
         <!-- ① 이미지 -->
         <section class="sec sec-blue">
@@ -226,17 +224,6 @@
       </aside>
     </section>
   </main>
-
-  <!-- 퀴즈 오버레이 -->
-  <div id="quizOverlay" class="quiz-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="quizTitle">
-    <div class="quiz-card">
-      <div class="flex items-start justify-between mb-3">
-        <h2 id="quizTitle" class="text-lg font-bold">퀴즈</h2>
-        <button id="btnQuizClose" class="px-2 py-1 rounded bg-slate-200 hover:bg-slate-300">닫기</button>
-      </div>
-      <div id="quizBody" class="space-y-2 text-sm"></div>
-    </div>
-  </div>
 
   <div id="toast" class="toast">적용됨.</div>
   <audio id="successAudio" src="assets/success.mp3" preload="auto"></audio>
