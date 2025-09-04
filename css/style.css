@@ -1,8 +1,10 @@
 :root { --tile-gap: 6px; --stage-scale: 1; }
 body { transition: background-color .25s ease, color .25s ease; }
 
-/* 보드 */
-.grid-board { display: grid; gap: var(--tile-gap); position: relative; }
+/* 보드: 항상 화면 폭을 차지하고, 최소 높이 확보 */
+.grid-board { display: grid; gap: var(--tile-gap); position: relative; width: 100%; min-height: 260px; }
+#board { aspect-ratio: 4 / 3; } /* JS에서 cols/rows에 맞게 동적으로 덮어씀 */
+
 .tile {
   background-size: var(--bg-w) var(--bg-h);
   background-repeat: no-repeat;
@@ -17,6 +19,7 @@ body { transition: background-color .25s ease, color .25s ease; }
 .hint-image { position:absolute; inset:0; z-index:0; opacity:.18; background-size:cover; background-position:center; border-radius:.8rem; pointer-events:none; }
 .reveal-image { position:absolute; inset:0; z-index:30; opacity:1; background-size:cover; background-position:center; border-radius:.8rem; display:none; }
 
+/* 회전 */
 .rotate-90 { transform: rotate(90deg); }
 .rotate-180 { transform: rotate(180deg); }
 .rotate-270 { transform: rotate(270deg); }
@@ -47,7 +50,7 @@ body.theme-contrast .btn-primary { background:#2563eb !important; color:#fff; }
 body.theme-chalk { background:#0b3d2e; color:#e2e8f0; }
 body.theme-chalk .card { background:#114736; color:#e6f3ed; }
 
-/* 다크에서 가독 */
+/* 다크 가독 */
 .theme-contrast .text-slate-500, .theme-contrast .label, .theme-contrast .desc{ color:#cbd5e1 !important; }
 .theme-contrast .input{ background:#0b1220; color:#f8fafc; border-color:#334155; }
 .theme-chalk .text-slate-500, .theme-chalk .label, .theme-chalk .desc{ color:#dbeafe !important; }
@@ -60,46 +63,26 @@ body.tablet .tile { border-radius:.6rem; }
 /* 학생 모드 */
 body.student #controlPanel { display:none; }
 body.student #layout { grid-template-columns: 1fr !important; }
-#stageInner { transform: scale(var(--stage-scale)); transform-origin: top left; display: inline-block; }
+#stageInner { transform: scale(var(--stage-scale)); transform-origin: top left; display: block; width: 100%; }
 
-/* ---- 사이드 설정 패널 리디자인 ---- */
-.sec{
-  border:1px solid rgba(15,23,42,.08); border-radius:1rem; background:linear-gradient(180deg,#fff,#f8fafc);
-  padding:14px; position:relative; overflow:hidden;
-}
-.sec::before{
-  content:""; position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--accent,#cbd5e1);
-}
+/* ---- 사이드 설정 패널 구분 디자인 ---- */
+.sec{ border:1px solid rgba(15,23,42,.08); border-radius:1rem; background:linear-gradient(180deg,#fff,#f8fafc); padding:14px; position:relative; overflow:hidden; }
+.sec::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--accent,#cbd5e1); }
 .sec-head{ display:flex; align-items:center; gap:.6rem; }
-.sec-index{
-  width:28px; height:28px; display:grid; place-items:center; font-weight:700;
-  border-radius:9999px; background:var(--accent,#cbd5e1); color:#0f172a; font-size:.9rem;
-}
+.sec-index{ width:28px; height:28px; display:grid; place-items:center; font-weight:700; border-radius:9999px; background:var(--accent,#cbd5e1); color:#0f172a; font-size:.9rem; }
 .sec-title{ font-weight:800; font-size:1rem; display:flex; align-items:center; gap:.4rem; }
 .sec-icon{ font-size:1.1rem; }
-
-.sec-blue{ --accent:#93c5fd; }
-.sec-purple{ --accent:#c4b5fd; }
-.sec-green{ --accent:#86efac; }
-.sec-gray{ --accent:#cbd5e1; }
-.sec-orange{ --accent:#fdba74; }
+.sec-blue{ --accent:#93c5fd; } .sec-purple{ --accent:#c4b5fd; } .sec-green{ --accent:#86efac; }
+.sec-gray{ --accent:#cbd5e1; } .sec-orange{ --accent:#fdba74; }
 
 .label{ display:block; font-size:.75rem; color:#64748b; margin-bottom:.25rem; }
-.input{
-  width:100%; border:1px solid #cbd5e1; border-radius:.6rem; padding:.6rem .75rem; font-size:.9rem; background:#fff;
-}
+.input{ width:100%; border:1px solid #cbd5e1; border-radius:.6rem; padding:.6rem .75rem; font-size:.9rem; background:#fff; }
 .radio{ display:inline-flex; align-items:center; gap:.5rem; font-size:.9rem; }
 .desc{ font-size:.75rem; color:#64748b; }
 
 /* 옵션 그리드 */
-.options-grid{
-  display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:.5rem .75rem;
-}
-.options-grid .opt{
-  display:flex; align-items:center; gap:.5rem; padding:.45rem .65rem;
-  border:1px solid rgba(15,23,42,.08); border-radius:.6rem; background:linear-gradient(180deg,#fff, #f8fafc);
-  font-size:.9rem;
-}
+.options-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:.5rem .75rem; }
+.options-grid .opt{ display:flex; align-items:center; gap:.5rem; padding:.45rem .65rem; border:1px solid rgba(15,23,42,.08); border-radius:.6rem; background:linear-gradient(180deg,#fff, #f8fafc); font-size:.9rem; }
 .options-grid input{ width:1rem; height:1rem; }
 
 /* Toast */
