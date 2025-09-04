@@ -1,9 +1,9 @@
 :root { --tile-gap: 6px; --stage-scale: 1; }
 body { transition: background-color .25s ease, color .25s ease; }
 
-/* 보드: 항상 화면 폭을 차지하고, 최소 높이 확보 */
+/* 보드 */
 .grid-board { display: grid; gap: var(--tile-gap); position: relative; width: 100%; min-height: 260px; }
-#board { aspect-ratio: 4 / 3; } /* JS에서 cols/rows에 맞게 동적으로 덮어씀 */
+#board { aspect-ratio: 4 / 3; } /* JS가 cols/rows로 동적으로 덮어씀 */
 
 .tile {
   background-size: var(--bg-w) var(--bg-h);
@@ -76,7 +76,7 @@ body.student #layout { grid-template-columns: 1fr !important; }
 .sec-gray{ --accent:#cbd5e1; } .sec-orange{ --accent:#fdba74; }
 
 .label{ display:block; font-size:.75rem; color:#64748b; margin-bottom:.25rem; }
-.input{ width:100%; border:1px solid #cbd5e1; border-radius:.6rem; padding:.6rem .75rem; font-size:.9rem; background:#fff; }
+.input{ width:100%; border:1px solid #cbd5e1; border-radius:.6rem; padding:.6rem .75rem; font-size:.9rem; }
 .radio{ display:inline-flex; align-items:center; gap:.5rem; font-size:.9rem; }
 .desc{ font-size:.75rem; color:#64748b; }
 
