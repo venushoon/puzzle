@@ -1,4 +1,4 @@
-/* ==================== 데이터 프리셋 ==================== */
+/* ========= 프리셋 ========= */
 const PRESETS = {
   flags: [
     { name: '대한민국', url: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Flag_of_South_Korea.svg' },
@@ -51,19 +51,13 @@ const DIFFICULTIES = {
 };
 const GRADE_PRESETS = {
   none: null,
-  g12: { pieces:8, rotate:false, hint:true, category:'flags', setCount:6,
-         items:['대한민국','일본','중국','미국','영국','프랑스'] },
-  g34: { pieces:12, rotate:false, hint:true, category:'landmarks', setCount:5,
-         items:['대한민국 · 경복궁','일본 · 후지산','중국 · 만리장성','프랑스 · 에펠탑','미국 · 자유의 여신상'] },
-  g56: { pieces:16, rotate:true, hint:false, category:'mixed', setCount:6,
-         items:'g20random' }
+  g12: { pieces:8, rotate:false, hint:true, category:'flags', setCount:6, items:['대한민국','일본','중국','미국','영국','프랑스'] },
+  g34: { pieces:12, rotate:false, hint:true, category:'landmarks', setCount:5, items:['대한민국 · 경복궁','일본 · 후지산','중국 · 만리장성','프랑스 · 에펠탑','미국 · 자유의 여신상'] },
+  g56: { pieces:16, rotate:true, hint:false, category:'mixed', setCount:6, items:'g20random' }
 };
-const QUIZ_INFO = {
-  '대한민국': { fact:'태극은 음양, 4괘는 자연 이치를 뜻함.', q:'대한민국 수도는?', a:'서울' },
-  '프랑스 · 에펠탑': { fact:'1889년 만국박람회 기념.', q:'어느 도시에 있나?', a:'파리' }
-};
+const QUIZ_INFO = { '대한민국': { fact:'태극·4괘 의미.', q:'대한민국 수도는?', a:'서울' } };
 
-/* ==================== 상태/DOM ==================== */
+/* ========= 상태/DOM ========= */
 let imgURL = PRESETS.flags[0].url;
 let imgTitle = PRESETS.flags[0].name;
 let rows = 3, cols = 4;
@@ -72,12 +66,12 @@ let started = false, solved = false;
 let timerInterval = null, t0 = 0;
 let revealOn = false;
 
-let setActive = false; let setQueue = []; let setIdx = 0; let setAccum = 0; let teamName = '';
+let setActive = false, setQueue = [], setIdx = 0, setAccum = 0, teamName = '';
 let currentGrade = 'none';
 let isStudentMode = false;
 let zoom = 1; const Z_MIN=0.5, Z_MAX=2, Z_STEP=0.1;
 
-/* pendingImage: url | wikiTitle | blobUrl */
+/* 대기 이미지: url | wikiTitle | blobUrl */
 let pendingImage = { url: imgURL, title: imgTitle, blobUrl: null, wikiTitle: null, sourcePage: null };
 
 const $ = (id)=>document.getElementById(id);
@@ -92,11 +86,11 @@ const teamNameEl=$('teamName'), setCountEl=$('setCount'), btnSetStart=$('btnSetS
 const setPanel=$('setPanel'), spTeam=$('spTeam'), spProg=$('spProg'), spAccum=$('spAccum'), setList=$('setList');
 const btnNew=$('btnNew'), btnShuffle=$('btnShuffle'), btnReset=$('btnReset'), btnReveal=$('btnReveal'), btnHintFlash=$('btnHintFlash'), btnQuiz=$('btnQuiz'), btnClearRecent=$('btnClearRecent');
 const btnToggleMode=$('btnToggleMode');
-const studentToolbar=$('studentToolbar'); const btnZoomOut=$('btnZoomOut'), btnZoomIn=$('btnZoomIn'), btnZoomReset=$('btnZoomReset'), btnZoomFit=$('btnZoomFit'), btnFullscreen=$('btnFullscreen'); const zoomLabel=$('zoomLabel');
+const studentToolbar=$('studentToolbar'), btnZoomOut=$('btnZoomOut'), btnZoomIn=$('btnZoomIn'), btnZoomReset=$('btnZoomReset'), btnZoomFit=$('btnZoomFit'), btnFullscreen=$('btnFullscreen'), zoomLabel=$('zoomLabel');
 const stageInner=$('stageInner'), stageOuter=$('stageOuter');
 const quizOverlay=$('quizOverlay'), quizBody=$('quizBody'), btnQuizClose=$('btnQuizClose');
 
-/* ==================== 유틸/토스트/타이머 ==================== */
+/* ========= 유틸 ========= */
 function toast(msg){ const el=$('toast'); el.textContent=msg||'적용됨.'; el.style.display='block'; setTimeout(()=>el.style.display='none',1600); }
 function fmt(ms){ const t=Math.max(0,ms|0); const m=(t/60000|0); const s=(t%60000/1000|0); const d=(t%1000/100|0); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`; }
 function keyForBest(){ return `${imgURL}|${rows}x${cols}|rot:${rotating}`; }
@@ -117,28 +111,25 @@ function updateAttribution(url, title){
 }
 function playSuccess(){ if(!optSound.checked) return;
   if(successAudio?.readyState>=2){ successAudio.currentTime=0; successAudio.play().catch(()=>{});}
-  else{ const ctx=new (window.AudioContext||window.webkitAudioContext)();
-    const o=ctx.createOscillator(), g=ctx.createGain(); o.type='triangle';
+  else{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='triangle';
     o.frequency.setValueAtTime(523.25,ctx.currentTime);
     g.gain.setValueAtTime(0.0001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.02);
     g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.35);
     o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.4); } }
 
-/* ==================== 이미지 로드(프리로드 + 폴백) ==================== */
+/* ========= 이미지 로드 (사전검증 + 폴백) ========= */
 async function resolveWikipediaImage(wikiTitle){
-  // original이 없으면 썸네일까지 자동 폴백
   const api=`https://en.wikipedia.org/w/api.php?action=query&origin=*&prop=pageimages|info&inprop=url&format=json&piprop=original|thumbnail&pithumbsize=1600&titles=${encodeURIComponent(wikiTitle)}`;
   const res=await fetch(api);
   const j=await res.json();
   const pages=j?.query?.pages||{};
   const first=pages[Object.keys(pages)[0]];
-  const src=first?.original?.source || first?.thumbnail?.source;
-  const fullurl=first?.fullurl;
-  return { src, fullurl };
+  return { src:first?.original?.source || first?.thumbnail?.source, fullurl:first?.fullurl };
 }
 function preload(url){
   return new Promise((resolve,reject)=>{
     const img=new Image();
+    img.crossOrigin = 'anonymous';
     img.onload=()=>resolve(url);
     img.onerror=()=>reject(new Error('이미지 로드 실패'));
     img.src=url;
@@ -146,7 +137,7 @@ function preload(url){
 }
 async function safeApply(url, title, sourcePage){
   try{
-    const okUrl=await preload(url); // CORS 허용 이미지만 사용
+    const okUrl=await preload(url);
     imgURL=okUrl; imgTitle=title||'';
     hint.style.backgroundImage=`url("${imgURL}")`;
     reveal.style.backgroundImage=`url("${imgURL}")`;
@@ -154,12 +145,11 @@ async function safeApply(url, title, sourcePage){
     updateAttribution(sourcePage || url, title);
     saveRecent(url, title); renderRecent(); loadBest(); buildBoard(); toast('이미지를 적용함.');
   }catch(e){
-    console.warn(e);
-    toast('⚠️ 이미지를 불러올 수 없음. 다른 이미지를 선택하세요.');
+    console.warn(e); toast('⚠️ 이미지를 불러올 수 없음. 다른 이미지를 선택하세요.');
   }
 }
 
-/* ==================== UI 빌드 ==================== */
+/* ========= UI 빌드 ========= */
 function populateImages(){
   const list=PRESETS[selCategory.value]; selImage.innerHTML='';
   list.forEach((it,i)=>{
@@ -174,9 +164,12 @@ function buildBoard(){
   [rows,cols]=PIECE_LAYOUTS[Number(val)];
   board.style.gridTemplateColumns=`repeat(${cols},1fr)`;
   board.style.gridTemplateRows=`repeat(${rows},1fr)`;
+  board.style.aspectRatio = `${cols} / ${rows}`;     // ← 가로:세로 비율 동적 적용
+
   const total=rows*cols;
   const rects=[]; for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) rects.push({r,c});
   const order=[...Array(total).keys()].sort(()=>Math.random()-0.5);
+
   board.innerHTML='';
   order.forEach((srcIdx,posIdx)=>{
     const {r,c}=rects[srcIdx]; const tile=document.createElement('div');
@@ -258,7 +251,7 @@ function markCustomIfChanged(){ const cur={pieces:Number(document.querySelector(
   for(const [k,v] of Object.entries(DIFFICULTIES)){ if(cur.pieces===v.pieces && cur.rotate===v.rotate && cur.hint===v.hint){ selDifficulty.value=k; return; } } selDifficulty.value='custom'; }
 function applyTheme(v){ document.body.classList.remove('theme-pastel','theme-contrast','theme-chalk'); if(v==='pastel')document.body.classList.add('theme-pastel'); else if(v==='contrast')document.body.classList.add('theme-contrast'); else if(v==='chalk')document.body.classList.add('theme-chalk'); }
 
-/* 학년 프리셋(테마 자동 변경 없음) */
+/* 학년 프리셋 */
 function findPresetByName(name){ return PRESETS.flags.find(x=>x.name===name)||PRESETS.landmarks.find(x=>x.name===name)||null; }
 function resolveGradeQueue(){
   const gp=GRADE_PRESETS[currentGrade]; if(!gp) return null;
@@ -271,9 +264,8 @@ function applyGradePreset(key){
   const p=gp.pieces; document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked=(Number(r.value)===p));
   [rows,cols]=PIECE_LAYOUTS[p]; optRotate.checked=gp.rotate; rotating=gp.rotate; optHint.checked=gp.hint;
   selCategory.value = (gp.category==='mixed') ? 'flags' : gp.category; populateImages(); setCountEl.value=gp.setCount;
-  // 첫 문제 미리 적용
-  if(Array.isArray(gp.items)){ const it=findPresetByName(gp.items[0]); if(it){ if(it.url){ pendingImage={url:it.url,title:it.name}; onApplyImage(); } else { pendingImage={wikiTitle:it.wikiTitle,title:it.name}; onApplyImage(); } } }
-  else { const f=PRESETS.flags[0]; pendingImage={url:f.url,title:f.name}; onApplyImage(); }
+  const pick = Array.isArray(gp.items) ? findPresetByName(gp.items[0]) : PRESETS.flags[0];
+  if(pick){ pendingImage = pick.url ? {url:pick.url,title:pick.name} : {wikiTitle:pick.wikiTitle,title:pick.name}; onApplyImage(); }
   if(isStudentMode) setTimeout(fitToScreen,0);
 }
 
@@ -284,14 +276,14 @@ function startSet(){ if(setActive) return;
   else if(list.length>n) list=list.slice(0,n);
   setQueue=list; setIdx=0; setAccum=0; setActive=true; spTeam.textContent=teamName; spProg.textContent=`${setIdx+1}/${setQueue.length}`; spAccum.textContent='00:00.0';
   setList.innerHTML=''; setPanel.classList.remove('hidden');
-  const it=setQueue[0]; if(it.wikiTitle){ pendingImage={wikiTitle:it.wikiTitle,title:it.name}; onApplyImage(); } else { pendingImage={url:it.url,title:it.name}; onApplyImage(); }
+  const it=setQueue[0]; pendingImage = it.wikiTitle ? {wikiTitle:it.wikiTitle,title:it.name} : {url:it.url,title:it.name}; onApplyImage();
   setStatus('세트 모드 시작함.');
 }
 function stopSet(){ if(!setActive) return; setActive=false; setStatus(`세트 종료함. 팀 ${teamName} · 누적 ${fmt(setAccum)}`); }
 function onSetSolved(elapsed){
   setAccum+=elapsed; const li=document.createElement('li'); li.textContent=`${imgTitle} — ${fmt(elapsed)}`; setList.appendChild(li);
   spAccum.textContent=fmt(setAccum); setIdx++;
-  if(setIdx<setQueue.length){ spProg.textContent=`${setIdx+1}/${setQueue.length}`; setTimeout(()=>{ const it=setQueue[setIdx]; if(it.wikiTitle){ pendingImage={wikiTitle:it.wikiTitle,title:it.name}; onApplyImage(); } else { pendingImage={url:it.url,title:it.name}; onApplyImage(); } },600);
+  if(setIdx<setQueue.length){ spProg.textContent=`${setIdx+1}/${setQueue.length}`; setTimeout(()=>{ const it=setQueue[setIdx]; pendingImage = it.wikiTitle ? {wikiTitle:it.wikiTitle,title:it.name} : {url:it.url,title:it.name}; onApplyImage(); },600);
   } else { setActive=false; spProg.textContent=`${setQueue.length}/${setQueue.length}`; const liTotal=document.createElement('li'); liTotal.className='mt-1 font-semibold'; liTotal.textContent=`합계 — ${fmt(setAccum)}`; setList.appendChild(liTotal); setStatus(`세트 완료함. 팀 ${teamName} · 누적 ${fmt(setAccum)}`,true); }
 }
 
@@ -312,23 +304,16 @@ function renderRecent(){
   });
 }
 
-/* 위키이미지 해결 + 적용 */
+/* 이미지 적용 */
 async function onApplyImage(){
   try{
     let url=null, sourcePage=null, title=pendingImage.title||'';
     if(pendingImage.blobUrl){ url=pendingImage.blobUrl; }
     else if(pendingImage.url){ url=pendingImage.url; }
-    else if(pendingImage.wikiTitle){
-      const {src, fullurl}=await resolveWikipediaImage(pendingImage.wikiTitle);
-      url=src; sourcePage=fullurl||src;
-      if(!url) throw new Error('위키 이미지 없음');
-    }
+    else if(pendingImage.wikiTitle){ const r=await resolveWikipediaImage(pendingImage.wikiTitle); url=r.src; sourcePage=r.fullurl||r.src; }
     if(!url) throw new Error('유효한 이미지가 없음');
     await safeApply(url, title, sourcePage);
-  }catch(e){
-    console.warn('apply image failed', e);
-    toast('⚠️ 이미지 정보를 불러오지 못함.');
-  }
+  }catch(e){ console.warn('apply image failed', e); toast('⚠️ 이미지 정보를 불러오지 못함.'); }
 }
 
 /* 초기화 */
@@ -374,17 +359,19 @@ function openQuiz(){
 }
 function closeQuiz(){ quizOverlay.classList.add('hidden'); }
 
-/* ==================== 이벤트 바인딩 ==================== */
-function populateAndBind(){
+/* ========= 이벤트 ========= */
+function bindAll(){
   populateImages(); renderRecent();
 
   selImage.addEventListener('change', ()=>{
     const opt=selImage.options[selImage.selectedIndex]; if(!opt) return;
     const kind=opt.dataset.kind;
-    if(kind==='url'){ pendingImage={url:opt.value,title:opt.text}; }
-    else{ pendingImage={wikiTitle:opt.value,title:opt.text}; }
+    pendingImage = (kind==='url') ? {url:opt.value,title:opt.text} : {wikiTitle:opt.value,title:opt.text};
   });
-  selCategory.addEventListener('change', ()=>{ populateImages(); const opt=selImage.options[0]; if(!opt) return; const kind=opt.dataset.kind; pendingImage=(kind==='url')?{url:opt.value,title:opt.text}:{wikiTitle:opt.value,title:opt.text}; });
+  selCategory.addEventListener('change', ()=>{
+    populateImages(); const opt=selImage.options[0]; if(!opt) return;
+    pendingImage = (opt.dataset.kind==='url') ? {url:opt.value,title:opt.text} : {wikiTitle:opt.value,title:opt.text};
+  });
 
   fileInput.addEventListener('change',e=>{ const f=e.target.files?.[0]; if(!f) return; const url=URL.createObjectURL(f); pendingImage={blobUrl:url,title:f.name}; });
   urlInput.addEventListener('change',()=>{ if(!urlInput.value) return; pendingImage={url:urlInput.value,title:'사용자 URL'}; });
@@ -430,11 +417,11 @@ function populateAndBind(){
   window.addEventListener('resize', ()=>{ if(isStudentMode) fitToScreen(); });
 }
 
-/* ==================== 초기화 ==================== */
+/* ========= 초기화 ========= */
 function init(){
-  // 기본 이미지 적용
+  // 기본 이미지 안전 적용
   safeApply(imgURL, imgTitle, imgURL);
-  populateAndBind();
+  bindAll();
   applyDifficulty('normal');
   applyTheme('default');
   buildBoard();
