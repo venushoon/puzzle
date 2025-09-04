@@ -1,4 +1,4 @@
-:root { --tile-gap: 6px; }
+:root { --tile-gap: 6px; --stage-scale: 1; }
 body { transition: background-color .25s ease, color .25s ease; }
 .grid-board { display: grid; gap: var(--tile-gap); position: relative; }
 .tile {
@@ -19,7 +19,7 @@ body { transition: background-color .25s ease, color .25s ease; }
 .rotate-180 { transform: rotate(180deg); }
 .rotate-270 { transform: rotate(270deg); }
 
-/* 3초 힌트 플래시 */
+/* 힌트 플래시 */
 .hint-flash {
   position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
   width:min(70vw, 70%); height:min(70vh, 70%);
@@ -45,7 +45,7 @@ body.theme-contrast .btn-primary { background:#2563eb !important; color:#fff; }
 body.theme-chalk { background:#0b3d2e; color:#e2e8f0; }
 body.theme-chalk .card { background:#114736; color:#e6f3ed; }
 
-/* Legibility for dark */
+/* Dark theme readability */
 .theme-contrast .text-slate-500, .theme-contrast label, .theme-contrast .sec .text-slate-500{ color:#cbd5e1 !important; }
 .theme-contrast input, .theme-contrast select{ background:#0b1220; color:#f8fafc; border-color:#334155; }
 .theme-chalk .text-slate-500, .theme-chalk label, .theme-chalk .sec .text-slate-500{ color:#dbeafe !important; }
@@ -55,22 +55,23 @@ body.theme-chalk .card { background:#114736; color:#e6f3ed; }
 body.tablet { --tile-gap: 10px; }
 body.tablet .tile { border-radius:.6rem; }
 
-/* 학생 모드: 큰 화면 실행 (설정 숨김) */
+/* 학생 모드: 설정 숨기고 보드 크게 */
 body.student #controlPanel { display:none; }
 body.student #layout { grid-template-columns: 1fr !important; }
-body.student header .btn-primary, body.student header button { transform: translateZ(0); }
-body.student #boardWrap { padding: 0.75rem; }
-body.student #board { /* 타일을 크게 보이도록 빈 영역 확보 */ }
+#stageInner { transform: scale(var(--stage-scale)); transform-origin: top left; display: inline-block; }
 
-/* Control section visuals */
-.sec { border:1px solid rgba(15,23,42,.08); border-radius:1rem; padding:12px; background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(248,250,252,.95)); }
-.sec.dark { background:linear-gradient(180deg,rgba(17,24,39,.9),rgba(30,41,59,.9)); border-color:rgba(255,255,255,.08); }
-.sec-title { display:flex; align-items:center; gap:.5rem; font-weight:700; }
-.badge { font-size:.7rem; padding:.15rem .45rem; border-radius:.6rem; background:#e2e8f0; color:#0f172a; }
-.badge.blue { background:#dbeafe; color:#1e40af; }
-.badge.green { background:#dcfce7; color:#166534; }
-.badge.purple { background:#ede9fe; color:#5b21b6; }
-.badge.orange { background:#ffedd5; color:#9a3412; }
+/* 옵션 그리드 */
+.options-grid{
+  display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:.5rem .75rem;
+}
+.options-grid .opt{
+  display:flex; align-items:center; gap:.5rem; padding:.4rem .6rem;
+  border:1px solid rgba(15,23,42,.08); border-radius:.6rem; background:linear-gradient(180deg,#fff, #f8fafc);
+  font-size:.9rem;
+}
+.options-grid input{ width:1rem; height:1rem; }
+
+/* Recent delete button color handled inline */
 
 /* Toast */
 .toast { position:fixed; right:16px; top:16px; z-index:50; background:#111827; color:#fff; padding:.6rem .8rem; border-radius:.6rem; box-shadow:0 10px 24px rgba(0,0,0,.2); display:none; }
