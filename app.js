@@ -49,13 +49,6 @@ const DIFFICULTIES = {
   normal: { pieces:12, rotate:false, hint:true },
   hard:   { pieces:16, rotate:true,  hint:false }
 };
-const GRADE_PRESETS = {
-  none: null,
-  g12: { pieces:8, rotate:false, hint:true, category:'flags', setCount:6, items:['대한민국','일본','중국','미국','영국','프랑스'] },
-  g34: { pieces:12, rotate:false, hint:true, category:'landmarks', setCount:5, items:['대한민국 · 경복궁','일본 · 후지산','중국 · 만리장성','프랑스 · 에펠탑','미국 · 자유의 여신상'] },
-  g56: { pieces:16, rotate:true, hint:false, category:'mixed', setCount:6, items:'g20random' }
-};
-const QUIZ_INFO = { '대한민국': { fact:'태극·4괘 의미.', q:'대한민국 수도는?', a:'서울' } };
 
 /* ========= 상태/DOM ========= */
 let imgURL = PRESETS.flags[0].url;
@@ -67,11 +60,10 @@ let timerInterval = null, t0 = 0;
 let revealOn = false;
 
 let setActive = false, setQueue = [], setIdx = 0, setAccum = 0, teamName = '';
-let currentGrade = 'none';
 let isStudentMode = false;
 let zoom = 1; const Z_MIN=0.5, Z_MAX=2, Z_STEP=0.1;
 
-/* 대기 이미지: url | wikiTitle | blobUrl */
+/* 대기 이미지 */
 let pendingImage = { url: imgURL, title: imgTitle, blobUrl: null, wikiTitle: null, sourcePage: null };
 
 const $ = (id)=>document.getElementById(id);
@@ -84,11 +76,10 @@ const timerEl=$('timer'), bestEl=$('best'), imgTitleEl=$('imgTitle'), statusEl=$
 const successAudio=$('successAudio'), recentWrap=$('recentWrap'), attribution=$('attribution');
 const teamNameEl=$('teamName'), setCountEl=$('setCount'), btnSetStart=$('btnSetStart'), btnSetStop=$('btnSetStop');
 const setPanel=$('setPanel'), spTeam=$('spTeam'), spProg=$('spProg'), spAccum=$('spAccum'), setList=$('setList');
-const btnNew=$('btnNew'), btnShuffle=$('btnShuffle'), btnReset=$('btnReset'), btnReveal=$('btnReveal'), btnHintFlash=$('btnHintFlash'), btnQuiz=$('btnQuiz'), btnClearRecent=$('btnClearRecent');
+const btnNew=$('btnNew'), btnShuffle=$('btnShuffle'), btnReset=$('btnReset'), btnReveal=$('btnReveal'), btnHintFlash=$('btnHintFlash'), btnClearRecent=$('btnClearRecent');
 const btnToggleMode=$('btnToggleMode');
 const studentToolbar=$('studentToolbar'), btnZoomOut=$('btnZoomOut'), btnZoomIn=$('btnZoomIn'), btnZoomReset=$('btnZoomReset'), btnZoomFit=$('btnZoomFit'), btnFullscreen=$('btnFullscreen'), zoomLabel=$('zoomLabel');
 const stageInner=$('stageInner'), stageOuter=$('stageOuter');
-const quizOverlay=$('quizOverlay'), quizBody=$('quizBody'), btnQuizClose=$('btnQuizClose');
 
 /* ========= 유틸 ========= */
 function toast(msg){ const el=$('toast'); el.textContent=msg||'적용됨.'; el.style.display='block'; setTimeout(()=>el.style.display='none',1600); }
@@ -117,22 +108,17 @@ function playSuccess(){ if(!optSound.checked) return;
     g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.35);
     o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.4); } }
 
-/* ========= 이미지 로드 (사전검증 + 폴백) ========= */
+/* ========= 이미지 로드 ========= */
 async function resolveWikipediaImage(wikiTitle){
   const api=`https://en.wikipedia.org/w/api.php?action=query&origin=*&prop=pageimages|info&inprop=url&format=json&piprop=original|thumbnail&pithumbsize=1600&titles=${encodeURIComponent(wikiTitle)}`;
-  const res=await fetch(api);
-  const j=await res.json();
-  const pages=j?.query?.pages||{};
-  const first=pages[Object.keys(pages)[0]];
+  const res=await fetch(api); const j=await res.json();
+  const pages=j?.query?.pages||{}; const first=pages[Object.keys(pages)[0]];
   return { src:first?.original?.source || first?.thumbnail?.source, fullurl:first?.fullurl };
 }
 function preload(url){
   return new Promise((resolve,reject)=>{
-    const img=new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload=()=>resolve(url);
-    img.onerror=()=>reject(new Error('이미지 로드 실패'));
-    img.src=url;
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>resolve(url); img.onerror=()=>reject(new Error('이미지 로드 실패')); img.src=url;
   });
 }
 async function safeApply(url, title, sourcePage){
@@ -144,9 +130,7 @@ async function safeApply(url, title, sourcePage){
     imgTitleEl.textContent=imgTitle?`현재 이미지: ${imgTitle}`:'';
     updateAttribution(sourcePage || url, title);
     saveRecent(url, title); renderRecent(); loadBest(); buildBoard(); toast('이미지를 적용함.');
-  }catch(e){
-    console.warn(e); toast('⚠️ 이미지를 불러올 수 없음. 다른 이미지를 선택하세요.');
-  }
+  }catch(e){ console.warn(e); toast('⚠️ 이미지를 불러올 수 없음. 다른 이미지를 선택하세요.'); }
 }
 
 /* ========= UI 빌드 ========= */
@@ -164,10 +148,10 @@ function buildBoard(){
   [rows,cols]=PIECE_LAYOUTS[Number(val)];
   board.style.gridTemplateColumns=`repeat(${cols},1fr)`;
   board.style.gridTemplateRows=`repeat(${rows},1fr)`;
-  board.style.aspectRatio = `${cols} / ${rows}`;     // ← 가로:세로 비율 동적 적용
+  board.style.aspectRatio = `${cols} / ${rows}`;
 
-  const total=rows*cols;
-  const rects=[]; for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) rects.push({r,c});
+  const total=rows*cols, rects=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) rects.push({r,c});
   const order=[...Array(total).keys()].sort(()=>Math.random()-0.5);
 
   board.innerHTML='';
@@ -251,29 +235,17 @@ function markCustomIfChanged(){ const cur={pieces:Number(document.querySelector(
   for(const [k,v] of Object.entries(DIFFICULTIES)){ if(cur.pieces===v.pieces && cur.rotate===v.rotate && cur.hint===v.hint){ selDifficulty.value=k; return; } } selDifficulty.value='custom'; }
 function applyTheme(v){ document.body.classList.remove('theme-pastel','theme-contrast','theme-chalk'); if(v==='pastel')document.body.classList.add('theme-pastel'); else if(v==='contrast')document.body.classList.add('theme-contrast'); else if(v==='chalk')document.body.classList.add('theme-chalk'); }
 
-/* 학년 프리셋 */
+/* 학년 프리셋 (세트 큐만 사용) */
 function findPresetByName(name){ return PRESETS.flags.find(x=>x.name===name)||PRESETS.landmarks.find(x=>x.name===name)||null; }
 function resolveGradeQueue(){
-  const gp=GRADE_PRESETS[currentGrade]; if(!gp) return null;
-  if(Array.isArray(gp.items)) return gp.items.map(findPresetByName).filter(Boolean);
-  const union=[...PRESETS.flags,...PRESETS.landmarks]; const count=gp.setCount||6; const pool=union.slice(); const out=[];
-  for(let i=0;i<count;i++){ if(pool.length===0) break; const j=(Math.random()*pool.length)|0; out.push(pool.splice(j,1)[0]); } return out;
-}
-function applyGradePreset(key){
-  currentGrade=key; const gp=GRADE_PRESETS[key]; if(!gp) return;
-  const p=gp.pieces; document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked=(Number(r.value)===p));
-  [rows,cols]=PIECE_LAYOUTS[p]; optRotate.checked=gp.rotate; rotating=gp.rotate; optHint.checked=gp.hint;
-  selCategory.value = (gp.category==='mixed') ? 'flags' : gp.category; populateImages(); setCountEl.value=gp.setCount;
-  const pick = Array.isArray(gp.items) ? findPresetByName(gp.items[0]) : PRESETS.flags[0];
-  if(pick){ pendingImage = pick.url ? {url:pick.url,title:pick.name} : {wikiTitle:pick.wikiTitle,title:pick.name}; onApplyImage(); }
-  if(isStudentMode) setTimeout(fitToScreen,0);
+  // 간단 버전: 현재는 카테고리·난이도만 직접 설정하고, 세트는 사용자 선택 기반으로 진행
+  return null;
 }
 
 /* 세트 모드 */
 function startSet(){ if(setActive) return;
   const n=Math.max(2,Math.min(10,Number(setCountEl.value)||3)); teamName=(teamNameEl.value||'무명 팀').trim();
-  let list=resolveGradeQueue(); if(!list){ const pool=PRESETS[selCategory.value].slice(); list=[]; for(let i=0;i<n;i++){ if(pool.length===0) pool.push(...PRESETS[selCategory.value]); const j=(Math.random()*pool.length)|0; list.push(pool.splice(j,1)[0]); } }
-  else if(list.length>n) list=list.slice(0,n);
+  let list=null; if(!list){ const pool=PRESETS[selCategory.value].slice(); list=[]; for(let i=0;i<n;i++){ if(pool.length===0) pool.push(...PRESETS[selCategory.value]); const j=(Math.random()*pool.length)|0; list.push(pool.splice(j,1)[0]); } }
   setQueue=list; setIdx=0; setAccum=0; setActive=true; spTeam.textContent=teamName; spProg.textContent=`${setIdx+1}/${setQueue.length}`; spAccum.textContent='00:00.0';
   setList.innerHTML=''; setPanel.classList.remove('hidden');
   const it=setQueue[0]; pendingImage = it.wikiTitle ? {wikiTitle:it.wikiTitle,title:it.name} : {url:it.url,title:it.name}; onApplyImage();
@@ -325,10 +297,10 @@ function resetAll(){
   optGrid.checked=true; optSound.checked=true; optTablet.checked=false;
   selCategory.value='flags'; populateImages(); const first=PRESETS.flags[0];
   selImage.selectedIndex=0; pendingImage={url:first.url,title:first.name}; onApplyImage();
-  fileInput.value=''; urlInput.value=''; teamNameEl.value=''; setCountEl.value=6; selGrade.value='none'; currentGrade='none';
+  fileInput.value=''; urlInput.value=''; teamNameEl.value=''; setCountEl.value=6;
   reveal.style.display='none'; board.style.pointerEvents='auto'; btnReveal.textContent='정답 공개';
   setPanel.classList.add('hidden'); setList.innerHTML=''; spAccum.textContent='00:00.0';
-  if(isStudentMode){ toggleMode(false); }
+  if(isStudentMode){ toggleMode(false); } // 관리자 모드로 복귀 + 배율 초기화
   toast('초기화 완료함.');
 }
 
@@ -343,21 +315,20 @@ function fitToScreen(){
 }
 function toggleFullscreen(){ const el=document.documentElement; if(!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.(); }
 function toggleMode(forceStudent){
-  if(typeof forceStudent==='boolean') isStudentMode=forceStudent; else isStudentMode=!isStudentMode;
+  const next = (typeof forceStudent==='boolean') ? forceStudent : !isStudentMode;
+  isStudentMode = next;
   document.body.classList.toggle('student', isStudentMode);
   studentToolbar.classList.toggle('hidden', !isStudentMode);
   btnToggleMode.textContent=isStudentMode?'관리자 모드':'학생 모드';
-  if(isStudentMode){ setTimeout(()=>{ setZoom(1); fitToScreen(); },0); }
-}
 
-/* 퀴즈 */
-function openQuiz(){
-  const info=QUIZ_INFO[imgTitle]||{}; const fact=info.fact?`💡 정보: ${info.fact}`:'이미지와 관련된 사실을 찾아봄.';
-  const q=info.q?`❓ 질문: ${info.q}`:'이 이미지는 어느 나라와 관련 있나?'; const a=info.a?`✅ 정답: ${info.a}`:'(함께 확인함.)';
-  quizBody.innerHTML=`<p>${fact}</p><p>${q}</p><details class="mt-2"><summary class="cursor-pointer select-none">정답 보기</summary><p class="mt-1">${a}</p></details>`;
-  quizOverlay.classList.remove('hidden');
+  if(isStudentMode){
+    // 학생 모드 진입: 보드에 화면 맞춤
+    setTimeout(()=>{ setZoom(1); fitToScreen(); },0);
+  }else{
+    // 관리자 모드 복귀: 항상 100% 배율로 되돌림
+    setZoom(1);
+  }
 }
-function closeQuiz(){ quizOverlay.classList.add('hidden'); }
 
 /* ========= 이벤트 ========= */
 function bindAll(){
@@ -385,16 +356,13 @@ function bindAll(){
 
   selDifficulty.addEventListener('change', ()=> applyDifficulty(selDifficulty.value));
   selTheme.addEventListener('change', ()=> applyTheme(selTheme.value));
-  selGrade.addEventListener('change', ()=> applyGradePreset(selGrade.value));
+  selGrade.addEventListener('change', ()=> {/* 학년 프리셋은 현재 세트에서만 사용 */});
 
   btnNew.addEventListener('click', ()=> buildBoard());
   btnShuffle.addEventListener('click', ()=> buildBoard());
   btnReset.addEventListener('click', resetAll);
   btnReveal.addEventListener('click', toggleReveal);
   btnHintFlash.addEventListener('click', flashHint);
-  btnQuiz.addEventListener('click', openQuiz);
-  btnQuizClose.addEventListener('click', closeQuiz);
-  quizOverlay.addEventListener('click',e=>{ if(e.target===quizOverlay) closeQuiz(); });
 
   btnSetStart.addEventListener('click', startSet);
   btnSetStop.addEventListener('click', stopSet);
@@ -419,12 +387,11 @@ function bindAll(){
 
 /* ========= 초기화 ========= */
 function init(){
-  // 기본 이미지 안전 적용
   safeApply(imgURL, imgTitle, imgURL);
   bindAll();
   applyDifficulty('normal');
   applyTheme('default');
   buildBoard();
-  applyZoom();
+  setZoom(1);
 }
 window.addEventListener('load', init);
