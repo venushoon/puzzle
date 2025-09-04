@@ -1,4 +1,4 @@
-// ---------- Presets ----------
+/* ==================== 데이터 프리셋 ==================== */
 const PRESETS = {
   flags: [
     { name: '대한민국', url: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Flag_of_South_Korea.svg' },
@@ -43,14 +43,12 @@ const PRESETS = {
     { name: '미국 · 자유의 여신상', wikiTitle: 'Statue of Liberty' }
   ]
 };
-
 const PIECE_LAYOUTS = { 8:[2,4], 12:[3,4], 16:[4,4] };
 const DIFFICULTIES = {
   easy:   { pieces:8,  rotate:false, hint:true },
   normal: { pieces:12, rotate:false, hint:true },
   hard:   { pieces:16, rotate:true,  hint:false }
 };
-
 const GRADE_PRESETS = {
   none: null,
   g12: { pieces:8, rotate:false, hint:true, category:'flags', setCount:6,
@@ -60,17 +58,12 @@ const GRADE_PRESETS = {
   g56: { pieces:16, rotate:true, hint:false, category:'mixed', setCount:6,
          items:'g20random' }
 };
-
-// 퀴즈(샘플)
 const QUIZ_INFO = {
-  '대한민국': { fact:'태극기는 태극과 4괘로 구성됨.', q:'대한민국 수도는?', a:'서울' },
-  '일본': { fact:'빨간 원은 태양을 뜻함.', q:'일본의 수도는?', a:'도쿄' },
-  '미국': { fact:'별 50개는 50개 주.', q:'미국의 수도는?', a:'워싱턴 D.C.' },
-  '대한민국 · 경복궁': { fact:'조선의 법궁.', q:'어느 도시에 있나?', a:'서울' },
-  '프랑스 · 에펠탑': { fact:'1889년 만국박람회.', q:'어느 도시에 있나?', a:'파리' }
+  '대한민국': { fact:'태극은 음양, 4괘는 자연 이치를 뜻함.', q:'대한민국 수도는?', a:'서울' },
+  '프랑스 · 에펠탑': { fact:'1889년 만국박람회 기념.', q:'어느 도시에 있나?', a:'파리' }
 };
 
-// ---------- State ----------
+/* ==================== 상태/DOM ==================== */
 let imgURL = PRESETS.flags[0].url;
 let imgTitle = PRESETS.flags[0].name;
 let rows = 3, cols = 4;
@@ -79,173 +72,154 @@ let started = false, solved = false;
 let timerInterval = null, t0 = 0;
 let revealOn = false;
 
-let setActive = false; let setQueue = []; let setTimes = []; let setIdx = 0; let setAccum = 0; let teamName = '';
+let setActive = false; let setQueue = []; let setIdx = 0; let setAccum = 0; let teamName = '';
 let currentGrade = 'none';
 let isStudentMode = false;
-
-// 확대/축소
 let zoom = 1; const Z_MIN=0.5, Z_MAX=2, Z_STEP=0.1;
 
-// pending image
+/* pendingImage: url | wikiTitle | blobUrl */
 let pendingImage = { url: imgURL, title: imgTitle, blobUrl: null, wikiTitle: null, sourcePage: null };
 
-// DOM helpers
 const $ = (id)=>document.getElementById(id);
+const selCategory=$('selCategory'), selImage=$('selImage');
+const fileInput=$('fileInput'), urlInput=$('urlInput'), btnApplyImage=$('btnApplyImage');
+const optHint=$('optHint'), optGrid=$('optGrid'), optRotate=$('optRotate'), optSound=$('optSound'), optTablet=$('optTablet');
+const selDifficulty=$('selDifficulty'), selTheme=$('selTheme'), selGrade=$('selGrade');
+const board=$('board'), hint=$('hint'), hintFlash=$('hintFlash'), reveal=$('reveal');
+const timerEl=$('timer'), bestEl=$('best'), imgTitleEl=$('imgTitle'), statusEl=$('status');
+const successAudio=$('successAudio'), recentWrap=$('recentWrap'), attribution=$('attribution');
+const teamNameEl=$('teamName'), setCountEl=$('setCount'), btnSetStart=$('btnSetStart'), btnSetStop=$('btnSetStop');
+const setPanel=$('setPanel'), spTeam=$('spTeam'), spProg=$('spProg'), spAccum=$('spAccum'), setList=$('setList');
+const btnNew=$('btnNew'), btnShuffle=$('btnShuffle'), btnReset=$('btnReset'), btnReveal=$('btnReveal'), btnHintFlash=$('btnHintFlash'), btnQuiz=$('btnQuiz'), btnClearRecent=$('btnClearRecent');
+const btnToggleMode=$('btnToggleMode');
+const studentToolbar=$('studentToolbar'); const btnZoomOut=$('btnZoomOut'), btnZoomIn=$('btnZoomIn'), btnZoomReset=$('btnZoomReset'), btnZoomFit=$('btnZoomFit'), btnFullscreen=$('btnFullscreen'); const zoomLabel=$('zoomLabel');
+const stageInner=$('stageInner'), stageOuter=$('stageOuter');
+const quizOverlay=$('quizOverlay'), quizBody=$('quizBody'), btnQuizClose=$('btnQuizClose');
 
-// DOM refs
-const selCategory = $('selCategory'), selImage = $('selImage');
-const fileInput = $('fileInput'), urlInput = $('urlInput'), btnApplyImage = $('btnApplyImage');
-
-const optHint = $('optHint'), optGrid = $('optGrid'), optRotate = $('optRotate'),
-      optSound = $('optSound'), optTablet = $('optTablet');
-const selDifficulty = $('selDifficulty'), selTheme = $('selTheme'), selGrade = $('selGrade');
-
-const board = $('board'), hint = $('hint'), hintFlash = $('hintFlash'), reveal = $('reveal');
-const timerEl = $('timer'), bestEl = $('best'), imgTitleEl = $('imgTitle'), statusEl = $('status');
-const successAudio = $('successAudio'), recentWrap = $('recentWrap'), attribution = $('attribution');
-
-const teamNameEl = $('teamName'), setCountEl = $('setCount'), btnSetStart = $('btnSetStart'), btnSetStop = $('btnSetStop');
-const setPanel = $('setPanel'), spTeam = $('spTeam'), spProg = $('spProg'), spAccum = $('spAccum'), setList = $('setList');
-
-const btnNew = $('btnNew'), btnShuffle = $('btnShuffle'), btnReset = $('btnReset'), btnReveal = $('btnReveal'),
-      btnHintFlash = $('btnHintFlash'), btnQuiz = $('btnQuiz'), btnClearRecent = $('btnClearRecent');
-const btnToggleMode = $('btnToggleMode');
-
-const studentToolbar = $('studentToolbar');
-const btnZoomOut = $('btnZoomOut'), btnZoomIn=$('btnZoomIn'), btnZoomReset=$('btnZoomReset'), btnZoomFit=$('btnZoomFit'), btnFullscreen=$('btnFullscreen');
-const zoomLabel = $('zoomLabel');
-const stageInner = $('stageInner'), stageOuter = $('stageOuter');
-
-const quizOverlay = $('quizOverlay'), quizBody = $('quizBody'), btnQuizClose = $('btnQuizClose');
-
-// ---------- Utils ----------
-function toast(msg){ const el = $('toast'); el.textContent = msg || '적용됨.'; el.style.display='block'; setTimeout(()=> el.style.display='none', 1400); }
+/* ==================== 유틸/토스트/타이머 ==================== */
+function toast(msg){ const el=$('toast'); el.textContent=msg||'적용됨.'; el.style.display='block'; setTimeout(()=>el.style.display='none',1600); }
 function fmt(ms){ const t=Math.max(0,ms|0); const m=(t/60000|0); const s=(t%60000/1000|0); const d=(t%1000/100|0); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`; }
 function keyForBest(){ return `${imgURL}|${rows}x${cols}|rot:${rotating}`; }
 function loadBest(){ const v=localStorage.getItem(keyForBest()); bestEl.textContent=v?fmt(Number(v)):'—'; }
-function saveBest(elapsed){ const k=keyForBest(); const v=localStorage.getItem(k); if(!v || Number(elapsed)<Number(v)){ localStorage.setItem(k,String(elapsed)); loadBest(); } }
-function startTimer(){ if(started) return; started=true; solved=false; t0=performance.now(); timerInterval=setInterval(()=>{ timerEl.textContent=fmt(performance.now()-t0); },100); }
+function saveBest(elapsed){ const k=keyForBest(); const v=localStorage.getItem(k); if(!v||Number(elapsed)<Number(v)){ localStorage.setItem(k,String(elapsed)); loadBest(); } }
+function startTimer(){ if(started) return; started=true; solved=false; t0=performance.now(); timerInterval=setInterval(()=> timerEl.textContent=fmt(performance.now()-t0),100); }
 function stopTimer(){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } }
 function setStatus(msg, ok=false){ statusEl.textContent=msg; statusEl.className='text-sm '+(ok?'text-emerald-600':'text-slate-600'); }
-function hostnameOf(url){ try{ return new URL(url).hostname.replace('www.',''); }catch(e){ return ''; } }
-function playSuccess(){ if(!optSound.checked) return;
-  if(successAudio && successAudio.readyState>=2){ successAudio.currentTime=0; successAudio.play().catch(()=>{}); }
-  else{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type='triangle'; o.frequency.setValueAtTime(523.25,ctx.currentTime);
-    g.gain.setValueAtTime(0.0001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.35); o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.4); } }
-
-// Attribution
+function hostnameOf(url){ try{ return new URL(url).hostname.replace('www.',''); }catch{ return ''; } }
 function updateAttribution(url, title){
-  const host = hostnameOf(url);
-  if(!url || url.startsWith('blob:')){ attribution.classList.add('hidden'); return; }
+  const host=hostnameOf(url);
+  if(!url||url.startsWith('blob:')){ attribution.classList.add('hidden'); return; }
   let label='이미지 출처';
-  if(host.includes('wikipedia.org')) label = `출처: Wikipedia · ${title||''}`;
-  else if(host.includes('wikimedia.org')) label = `출처: Wikimedia Commons · ${title||''}`;
-  else label = `출처: ${host}`;
-  attribution.textContent = label; attribution.href = url; attribution.classList.remove('hidden');
+  if(host.includes('wikipedia.org')) label=`출처: Wikipedia · ${title||''}`;
+  else if(host.includes('wikimedia.org')) label=`출처: Wikimedia Commons · ${title||''}`;
+  else label=`출처: ${host}`;
+  attribution.textContent=label; attribution.href=url; attribution.classList.remove('hidden');
 }
+function playSuccess(){ if(!optSound.checked) return;
+  if(successAudio?.readyState>=2){ successAudio.currentTime=0; successAudio.play().catch(()=>{});}
+  else{ const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(), g=ctx.createGain(); o.type='triangle';
+    o.frequency.setValueAtTime(523.25,ctx.currentTime);
+    g.gain.setValueAtTime(0.0001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.35);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.4); } }
 
-// ---------- Zoom / Fullscreen ----------
-function applyZoom(){
-  stageInner.style.setProperty('--stage-scale', zoom);
-  document.documentElement.style.setProperty('--stage-scale', zoom);
-  zoomLabel.textContent = `${Math.round(zoom*100)}%`;
+/* ==================== 이미지 로드(프리로드 + 폴백) ==================== */
+async function resolveWikipediaImage(wikiTitle){
+  // original이 없으면 썸네일까지 자동 폴백
+  const api=`https://en.wikipedia.org/w/api.php?action=query&origin=*&prop=pageimages|info&inprop=url&format=json&piprop=original|thumbnail&pithumbsize=1600&titles=${encodeURIComponent(wikiTitle)}`;
+  const res=await fetch(api);
+  const j=await res.json();
+  const pages=j?.query?.pages||{};
+  const first=pages[Object.keys(pages)[0]];
+  const src=first?.original?.source || first?.thumbnail?.source;
+  const fullurl=first?.fullurl;
+  return { src, fullurl };
 }
-function setZoom(next){
-  zoom = Math.min(Z_MAX, Math.max(Z_MIN, Math.round(next*100)/100));
-  applyZoom();
-}
-function fitToScreen(){
-  // 보드 전체를 기준으로 가용 영역(stageOuter) 높이에 맞춤
-  const boardRect = stageInner.getBoundingClientRect();
-  const outerRect = stageOuter.getBoundingClientRect();
-  const scaleH = (outerRect.height - 8) / (boardRect.height || 1);
-  const scaleW = (outerRect.width - 8) / (boardRect.width || 1);
-  const s = Math.max(0.5, Math.min(2, Math.min(scaleH, scaleW)));
-  setZoom(s);
-}
-function toggleFullscreen(){
-  const el = document.documentElement;
-  if (!document.fullscreenElement) el.requestFullscreen?.();
-  else document.exitFullscreen?.();
-}
-
-// ---------- Data/UI ----------
-function populateImages(){
-  const list = PRESETS[selCategory.value];
-  selImage.innerHTML='';
-  list.forEach((it,i)=>{
-    const opt=document.createElement('option');
-    opt.value = it.url || it.wikiTitle || '';
-    opt.textContent = it.name;
-    if(i===0) opt.selected = true;
-    selImage.appendChild(opt);
+function preload(url){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(url);
+    img.onerror=()=>reject(new Error('이미지 로드 실패'));
+    img.src=url;
   });
 }
-
-function applyImage(url, title){
-  imgURL=url; imgTitle=title||'';
-  imgTitleEl.textContent = imgTitle ? `현재 이미지: ${imgTitle}` : '';
-  $('hint').style.backgroundImage = `url("${imgURL}")`;
-  $('reveal').style.backgroundImage = `url("${imgURL}")`;
-  updateAttribution(pendingImage.sourcePage || url, title);
-  loadBest(); saveRecent(url, title); renderRecent();
+async function safeApply(url, title, sourcePage){
+  try{
+    const okUrl=await preload(url); // CORS 허용 이미지만 사용
+    imgURL=okUrl; imgTitle=title||'';
+    hint.style.backgroundImage=`url("${imgURL}")`;
+    reveal.style.backgroundImage=`url("${imgURL}")`;
+    imgTitleEl.textContent=imgTitle?`현재 이미지: ${imgTitle}`:'';
+    updateAttribution(sourcePage || url, title);
+    saveRecent(url, title); renderRecent(); loadBest(); buildBoard(); toast('이미지를 적용함.');
+  }catch(e){
+    console.warn(e);
+    toast('⚠️ 이미지를 불러올 수 없음. 다른 이미지를 선택하세요.');
+  }
 }
 
+/* ==================== UI 빌드 ==================== */
+function populateImages(){
+  const list=PRESETS[selCategory.value]; selImage.innerHTML='';
+  list.forEach((it,i)=>{
+    const opt=document.createElement('option');
+    if(it.url){ opt.value=it.url; opt.dataset.kind='url'; }
+    else { opt.value=it.wikiTitle; opt.dataset.kind='wiki'; }
+    opt.textContent=it.name; if(i===0) opt.selected=true; selImage.appendChild(opt);
+  });
+}
 function buildBoard(){
-  const totalRowsCols = document.querySelector('input[name="pieces"]:checked').value;
-  [rows, cols] = PIECE_LAYOUTS[Number(totalRowsCols)];
+  const val=document.querySelector('input[name="pieces"]:checked').value;
+  [rows,cols]=PIECE_LAYOUTS[Number(val)];
   board.style.gridTemplateColumns=`repeat(${cols},1fr)`;
   board.style.gridTemplateRows=`repeat(${rows},1fr)`;
-
   const total=rows*cols;
   const rects=[]; for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) rects.push({r,c});
   const order=[...Array(total).keys()].sort(()=>Math.random()-0.5);
-
   board.innerHTML='';
   order.forEach((srcIdx,posIdx)=>{
     const {r,c}=rects[srcIdx]; const tile=document.createElement('div');
     tile.className='tile bg-slate-100'; tile.draggable=!optTablet.checked; tile.tabIndex=0;
     tile.dataset.correct=String(srcIdx); tile.dataset.pos=String(posIdx); tile.dataset.rot='0';
-    const bgX=(c/(cols-1))*100; const bgY=(r/(rows-1))*100;
+    const bgX=(c/(cols-1))*100, bgY=(r/(rows-1))*100;
     tile.style.backgroundImage=`url("${imgURL}")`;
     tile.style.backgroundPosition=`${bgX}% ${bgY}%`;
-    tile.style.aspectRatio='1 / 1';
+    tile.style.aspectRatio='1/1';
     tile.style.border=optGrid.checked?'1px solid rgba(0,0,0,.08)':'none';
     tile.style.backgroundSize=`${cols*100}% ${rows*100}%`;
     addDnD(tile); addRotate(tile); addKeyboard(tile); addTapSwap(tile);
     board.appendChild(tile);
   });
   hint.classList.toggle('hide', !optHint.checked);
-  reveal.style.display = revealOn ? 'block':'none';
+  reveal.style.display=revealOn?'block':'none';
   stopTimer(); started=false; solved=false; timerEl.textContent='00:00.0';
   setStatus('타일을 드래그 또는 탭-스왑으로 바꿔 보세요.');
-  // 학생 모드에서는 보드 변경 시 화면맞춤 유지
-  if(isStudentMode) setTimeout(fitToScreen, 0);
+  if(isStudentMode) setTimeout(fitToScreen,0);
 }
 
+/* 드래그/탭/키보드/회전 */
 function addDnD(tile){
-  tile.addEventListener('dragstart',(e)=>{ tile.classList.add('dragging'); e.dataTransfer.setData('text/plain',tile.dataset.pos); });
+  tile.addEventListener('dragstart',e=>{ tile.classList.add('dragging'); e.dataTransfer.setData('text/plain',tile.dataset.pos); });
   tile.addEventListener('dragend',()=> tile.classList.remove('dragging'));
-  tile.addEventListener('dragover',(e)=>{ if(optTablet.checked) return; e.preventDefault(); tile.classList.add('drop-target'); });
+  tile.addEventListener('dragover',e=>{ if(optTablet.checked) return; e.preventDefault(); tile.classList.add('drop-target'); });
   tile.addEventListener('dragleave',()=> tile.classList.remove('drop-target'));
-  tile.addEventListener('drop',(e)=>{ if(optTablet.checked) return; e.preventDefault(); tile.classList.remove('drop-target');
-    const fromPos=Number(e.dataTransfer.getData('text/plain')); const toPos=Number(tile.dataset.pos); if(fromPos===toPos) return; swapTiles(fromPos,toPos); });
+  tile.addEventListener('drop',e=>{ if(optTablet.checked) return; e.preventDefault(); tile.classList.remove('drop-target');
+    const from=Number(e.dataTransfer.getData('text/plain')), to=Number(tile.dataset.pos); if(from===to) return; swapTiles(from,to); });
 }
 function addTapSwap(tile){
   tile.addEventListener('click',()=>{ if(!optTablet.checked) return; if(!window._kbSel){ window._kbSel=tile; tile.classList.add('kb-selected'); return; }
     if(window._kbSel===tile){ tile.classList.remove('kb-selected'); window._kbSel=null; return; }
-    const fromPos=Number(window._kbSel.dataset.pos); const toPos=Number(tile.dataset.pos); window._kbSel.classList.remove('kb-selected'); window._kbSel=null; swapTiles(fromPos,toPos); });
+    const from=Number(window._kbSel.dataset.pos), to=Number(tile.dataset.pos); window._kbSel.classList.remove('kb-selected'); window._kbSel=null; swapTiles(from,to); });
 }
 function addRotate(tile){
   const applyRotCls=(el)=>{ el.classList.remove('rotate-90','rotate-180','rotate-270'); const d=Number(el.dataset.rot); if(d===90)el.classList.add('rotate-90'); else if(d===180)el.classList.add('rotate-180'); else if(d===270)el.classList.add('rotate-270'); };
   tile.addEventListener('dblclick',()=>{ if(!rotating) return; const n=(Number(tile.dataset.rot)+90)%360; tile.dataset.rot=String(n); applyRotCls(tile); checkSolved(); });
-  tile.addEventListener('keydown',(e)=>{ if(!rotating) return; if(e.code==='Space'||e.key==='r'||e.key==='R'){ e.preventDefault(); const n=(Number(tile.dataset.rot)+90)%360; tile.dataset.rot=String(n); applyRotCls(tile); checkSolved(); } });
-  if(rotating){ const degs=[0,90,180,270]; tile.dataset.rot=String(degs[(Math.random()*4)|0]); const d=Number(tile.dataset.rot); if(d) tile.classList.add(`rotate-${d}`); }
+  tile.addEventListener('keydown',e=>{ if(!rotating) return; if(e.code==='Space'||e.key==='r'||e.key==='R'){ e.preventDefault(); const n=(Number(tile.dataset.rot)+90)%360; tile.dataset.rot=String(n); applyRotCls(tile); checkSolved(); } });
+  if(rotating){ const deg=[0,90,180,270][(Math.random()*4)|0]; tile.dataset.rot=String(deg); if(deg) tile.classList.add(`rotate-${deg}`); }
 }
 function addKeyboard(tile){
-  tile.addEventListener('keydown',(e)=>{ const key=e.key; const pos=Number(tile.dataset.pos); const rc=idxToRC(pos);
+  tile.addEventListener('keydown',e=>{ const key=e.key; const pos=Number(tile.dataset.pos); const rc={r:(pos/cols|0), c:(pos%cols)};
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(key)) e.preventDefault();
     if(key==='ArrowLeft') focusByRC(rc.r,rc.c-1);
     if(key==='ArrowRight') focusByRC(rc.r,rc.c+1);
@@ -253,14 +227,13 @@ function addKeyboard(tile){
     if(key==='ArrowDown') focusByRC(rc.r+1,rc.c);
     if(key==='Enter'){ e.preventDefault(); if(!window._kbSel){ window._kbSel=tile; tile.classList.add('kb-selected'); return; }
       if(window._kbSel===tile){ tile.classList.remove('kb-selected'); window._kbSel=null; return; }
-      const fromPos=Number(window._kbSel.dataset.pos); const toPos=Number(tile.dataset.pos);
-      window._kbSel.classList.remove('kb-selected'); window._kbSel=null; swapTiles(fromPos,toPos); }
-  });}
-function focusByRC(r,c){ if(r<0||c<0||r>=rows||c>=cols) return; const idx=r*cols+c; const t=Array.from(board.children).find(x=>Number(x.dataset.pos)===idx); if(t) t.focus(); }
-function idxToRC(idx){ return { r:(idx/cols|0), c:(idx%cols) }; }
-function swapTiles(fromPos,toPos){
-  const tiles=Array.from(board.children);
-  const a=tiles.find(t=>Number(t.dataset.pos)===fromPos); const b=tiles.find(t=>Number(t.dataset.pos)===toPos); if(!a||!b) return;
+      const from=Number(window._kbSel.dataset.pos), to=Number(tile.dataset.pos); window._kbSel.classList.remove('kb-selected'); window._kbSel=null; swapTiles(from,to); }
+  });
+}
+function focusByRC(r,c){ if(r<0||c<0||r>=rows||c>=cols) return; const idx=r*cols+c; const t=[...board.children].find(x=>Number(x.dataset.pos)===idx); if(t) t.focus(); }
+function swapTiles(from,to){
+  const tiles=[...board.children];
+  const a=tiles.find(t=>Number(t.dataset.pos)===from), b=tiles.find(t=>Number(t.dataset.pos)===to); if(!a||!b) return;
   startTimer();
   const aNext=a.nextSibling, bNext=b.nextSibling, parent=a.parentNode;
   parent.insertBefore(a,bNext); parent.insertBefore(b,aNext);
@@ -268,18 +241,16 @@ function swapTiles(fromPos,toPos){
   checkSolved();
 }
 function checkSolved(){
-  const tiles=Array.from(board.children);
-  const ok=tiles.every(t=>{ const pos=Number(t.dataset.pos), correct=Number(t.dataset.correct); const rot=Number(t.dataset.rot||'0'); const rotOK=rotating?rot===0:true; return pos===correct && rotOK; });
+  const tiles=[...board.children];
+  const ok=tiles.every(t=>{ const pos=Number(t.dataset.pos), cor=Number(t.dataset.correct), rot=Number(t.dataset.rot||'0'); return pos===cor && (rotating?rot===0:true); });
   if(ok && !solved){ solved=true; stopTimer(); const elapsed=performance.now()-t0; saveBest(elapsed); setStatus(`완료! 기록 ${fmt(elapsed)}`,true); playSuccess(); if(setActive) onSetSolved(elapsed); }
 }
 
-// Hint flash
+/* 힌트/정답 */
 function flashHint(){ hintFlash.style.backgroundImage=`url("${imgURL}")`; hintFlash.classList.remove('hidden'); setTimeout(()=>hintFlash.classList.add('hidden'),3000); }
-
-// Reveal
 function toggleReveal(){ revealOn=!revealOn; reveal.style.display=revealOn?'block':'none'; board.style.pointerEvents=revealOn?'none':'auto'; btnReveal.textContent=revealOn?'정답 숨기기':'정답 공개'; setStatus(revealOn?'정답을 표시 중임.':'퍼즐 진행 중.'); }
 
-// Difficulty/Theme
+/* 난이도/테마 */
 function applyDifficulty(name){ if(name==='custom') return; const d=DIFFICULTIES[name];
   document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked=(Number(r.value)===d.pieces));
   [rows,cols]=PIECE_LAYOUTS[d.pieces]; optRotate.checked=d.rotate; rotating=d.rotate; optHint.checked=d.hint; buildBoard(); }
@@ -287,82 +258,80 @@ function markCustomIfChanged(){ const cur={pieces:Number(document.querySelector(
   for(const [k,v] of Object.entries(DIFFICULTIES)){ if(cur.pieces===v.pieces && cur.rotate===v.rotate && cur.hint===v.hint){ selDifficulty.value=k; return; } } selDifficulty.value='custom'; }
 function applyTheme(v){ document.body.classList.remove('theme-pastel','theme-contrast','theme-chalk'); if(v==='pastel')document.body.classList.add('theme-pastel'); else if(v==='contrast')document.body.classList.add('theme-contrast'); else if(v==='chalk')document.body.classList.add('theme-chalk'); }
 
-// Grade preset (테마 자동 변경 없음)
+/* 학년 프리셋(테마 자동 변경 없음) */
+function findPresetByName(name){ return PRESETS.flags.find(x=>x.name===name)||PRESETS.landmarks.find(x=>x.name===name)||null; }
+function resolveGradeQueue(){
+  const gp=GRADE_PRESETS[currentGrade]; if(!gp) return null;
+  if(Array.isArray(gp.items)) return gp.items.map(findPresetByName).filter(Boolean);
+  const union=[...PRESETS.flags,...PRESETS.landmarks]; const count=gp.setCount||6; const pool=union.slice(); const out=[];
+  for(let i=0;i<count;i++){ if(pool.length===0) break; const j=(Math.random()*pool.length)|0; out.push(pool.splice(j,1)[0]); } return out;
+}
 function applyGradePreset(key){
   currentGrade=key; const gp=GRADE_PRESETS[key]; if(!gp) return;
-  const pieceVal=gp.pieces; document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked=(Number(r.value)===pieceVal));
-  [rows,cols]=PIECE_LAYOUTS[pieceVal]; optRotate.checked=gp.rotate; rotating=gp.rotate; optHint.checked=gp.hint;
-  if(gp.category==='mixed'){ selCategory.value='flags'; } else { selCategory.value=gp.category; }
-  populateImages();
-  setCountEl.value=gp.setCount;
-
-  if(Array.isArray(gp.items)){ const name=gp.items[0]; const item=findPresetByName(name);
-    if(item){ if(item.url){ pendingImage={url:item.url,title:item.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); }
-      else { pendingImage={url:'',title:item.name,blobUrl:null,wikiTitle:item.wikiTitle,sourcePage:null}; resolvePendingIfLandmark().then(onApplyImage); } }
-  } else { pendingImage={url:PRESETS.flags[0].url,title:PRESETS.flags[0].name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); }
-
-  if(isStudentMode) setTimeout(fitToScreen, 0);
+  const p=gp.pieces; document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked=(Number(r.value)===p));
+  [rows,cols]=PIECE_LAYOUTS[p]; optRotate.checked=gp.rotate; rotating=gp.rotate; optHint.checked=gp.hint;
+  selCategory.value = (gp.category==='mixed') ? 'flags' : gp.category; populateImages(); setCountEl.value=gp.setCount;
+  // 첫 문제 미리 적용
+  if(Array.isArray(gp.items)){ const it=findPresetByName(gp.items[0]); if(it){ if(it.url){ pendingImage={url:it.url,title:it.name}; onApplyImage(); } else { pendingImage={wikiTitle:it.wikiTitle,title:it.name}; onApplyImage(); } } }
+  else { const f=PRESETS.flags[0]; pendingImage={url:f.url,title:f.name}; onApplyImage(); }
+  if(isStudentMode) setTimeout(fitToScreen,0);
 }
 
-function resolveGradeQueue(){ const gp=GRADE_PRESETS[currentGrade]; if(!gp) return null; if(Array.isArray(gp.items)) return gp.items.map(findPresetByName).filter(Boolean);
-  const union=[...PRESETS.flags,...PRESETS.landmarks]; const count=gp.setCount||6; const pool=union.slice(); const out=[]; for(let i=0;i<count;i++){ if(pool.length===0) break; const j=(Math.random()*pool.length)|0; out.push(pool.splice(j,1)[0]); } return out; }
-function findPresetByName(name){ return PRESETS.flags.find(x=>x.name===name)||PRESETS.landmarks.find(x=>x.name===name)||null; }
-
-// Set mode
-function startSet(){ if(setActive) return; const n=Math.max(2,Math.min(10,Number(setCountEl.value)||3)); teamName=(teamNameEl.value||'무명 팀').trim();
+/* 세트 모드 */
+function startSet(){ if(setActive) return;
+  const n=Math.max(2,Math.min(10,Number(setCountEl.value)||3)); teamName=(teamNameEl.value||'무명 팀').trim();
   let list=resolveGradeQueue(); if(!list){ const pool=PRESETS[selCategory.value].slice(); list=[]; for(let i=0;i<n;i++){ if(pool.length===0) pool.push(...PRESETS[selCategory.value]); const j=(Math.random()*pool.length)|0; list.push(pool.splice(j,1)[0]); } }
   else if(list.length>n) list=list.slice(0,n);
-  setQueue=list; setTimes=[]; setIdx=0; setAccum=0; setActive=true; spTeam.textContent=teamName; spProg.textContent=`${setIdx+1}/${setQueue.length}`; spAccum.textContent='00:00.0';
+  setQueue=list; setIdx=0; setAccum=0; setActive=true; spTeam.textContent=teamName; spProg.textContent=`${setIdx+1}/${setQueue.length}`; spAccum.textContent='00:00.0';
   setList.innerHTML=''; setPanel.classList.remove('hidden');
-  const it=setQueue[0]; if(it.wikiTitle){ pendingImage={url:'',title:it.name,blobUrl:null,wikiTitle:it.wikiTitle,sourcePage:null}; resolvePendingIfLandmark().then(onApplyImage); }
-  else { pendingImage={url:it.url,title:it.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); }
+  const it=setQueue[0]; if(it.wikiTitle){ pendingImage={wikiTitle:it.wikiTitle,title:it.name}; onApplyImage(); } else { pendingImage={url:it.url,title:it.name}; onApplyImage(); }
   setStatus('세트 모드 시작함.');
 }
 function stopSet(){ if(!setActive) return; setActive=false; setStatus(`세트 종료함. 팀 ${teamName} · 누적 ${fmt(setAccum)}`); }
 function onSetSolved(elapsed){
-  setTimes.push(elapsed); setAccum+=elapsed; const li=document.createElement('li'); li.textContent=`${imgTitle} — ${fmt(elapsed)}`; setList.appendChild(li);
+  setAccum+=elapsed; const li=document.createElement('li'); li.textContent=`${imgTitle} — ${fmt(elapsed)}`; setList.appendChild(li);
   spAccum.textContent=fmt(setAccum); setIdx++;
-  if(setIdx<setQueue.length){ spProg.textContent=`${setIdx+1}/${setQueue.length}`; setTimeout(()=>{ const it=setQueue[setIdx];
-    if(it.wikiTitle){ pendingImage={url:'',title:it.name,blobUrl:null,wikiTitle:it.wikiTitle,sourcePage:null}; resolvePendingIfLandmark().then(onApplyImage); }
-    else { pendingImage={url:it.url,title:it.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); } },700);
+  if(setIdx<setQueue.length){ spProg.textContent=`${setIdx+1}/${setQueue.length}`; setTimeout(()=>{ const it=setQueue[setIdx]; if(it.wikiTitle){ pendingImage={wikiTitle:it.wikiTitle,title:it.name}; onApplyImage(); } else { pendingImage={url:it.url,title:it.name}; onApplyImage(); } },600);
   } else { setActive=false; spProg.textContent=`${setQueue.length}/${setQueue.length}`; const liTotal=document.createElement('li'); liTotal.className='mt-1 font-semibold'; liTotal.textContent=`합계 — ${fmt(setAccum)}`; setList.appendChild(liTotal); setStatus(`세트 완료함. 팀 ${teamName} · 누적 ${fmt(setAccum)}`,true); }
 }
 
-// Recent images
-function saveRecent(url,title){ try{ const k='puzzle_recent_imgs'; const obj=JSON.parse(localStorage.getItem(k)||'[]'); const filtered=obj.filter(it=>it.url!==url); filtered.unshift({url,title}); localStorage.setItem(k,JSON.stringify(filtered.slice(0,8))); }catch(e){} }
-function loadRecent(){ try{ return JSON.parse(localStorage.getItem('puzzle_recent_imgs')||'[]'); }catch(e){ return []; } }
-function deleteRecent(url){ try{ const k='puzzle_recent_imgs'; const obj=JSON.parse(localStorage.getItem(k)||'[]'); localStorage.setItem(k,JSON.stringify(obj.filter(it=>it.url!==url))); renderRecent(); }catch(e){} }
-function clearAllRecent(){ try{ localStorage.removeItem('puzzle_recent_imgs'); renderRecent(); toast('최근 이미지를 모두 삭제함.'); }catch(e){} }
-function renderRecent(){ const arr=loadRecent(); recentWrap.innerHTML=''; arr.forEach(it=>{ const chip=document.createElement('div'); chip.className='flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-300 bg-white';
-  const btn=document.createElement('button'); btn.className='underline'; btn.textContent=it.title||it.url.split('/').pop(); btn.title=it.url;
-  btn.addEventListener('click',()=>{ pendingImage={url:it.url,title:it.title||'',blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); });
-  const del=document.createElement('button'); del.textContent='×'; del.className='ml-1 w-4 h-4 leading-3 text-red-600 hover:text-red-700'; del.title='삭제';
-  del.addEventListener('click',()=>deleteRecent(it.url));
-  chip.appendChild(btn); chip.appendChild(del); recentWrap.appendChild(chip); }); }
+/* 최근 이미지 */
+function saveRecent(url,title){ try{ const k='puzzle_recent_imgs'; const arr=JSON.parse(localStorage.getItem(k)||'[]'); const filtered=arr.filter(it=>it.url!==url); filtered.unshift({url,title}); localStorage.setItem(k,JSON.stringify(filtered.slice(0,8))); }catch{} }
+function loadRecent(){ try{ return JSON.parse(localStorage.getItem('puzzle_recent_imgs')||'[]'); }catch{ return []; } }
+function deleteRecent(url){ try{ const k='puzzle_recent_imgs'; const arr=JSON.parse(localStorage.getItem(k)||'[]'); localStorage.setItem(k,JSON.stringify(arr.filter(it=>it.url!==url))); renderRecent(); }catch{} }
+function clearAllRecent(){ try{ localStorage.removeItem('puzzle_recent_imgs'); renderRecent(); toast('최근 이미지를 모두 삭제함.'); }catch{} }
+function renderRecent(){
+  const arr=loadRecent(); recentWrap.innerHTML='';
+  arr.forEach(it=>{
+    const chip=document.createElement('div'); chip.className='flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-300 bg-white';
+    const btn=document.createElement('button'); btn.className='underline'; btn.textContent=it.title||it.url.split('/').pop(); btn.title=it.url;
+    btn.addEventListener('click',()=>{ pendingImage={url:it.url,title:it.title||''}; onApplyImage(); });
+    const del=document.createElement('button'); del.textContent='×'; del.className='ml-1 w-4 h-4 leading-3 text-red-600 hover:text-red-700'; del.title='삭제';
+    del.addEventListener('click',()=>deleteRecent(it.url));
+    chip.appendChild(btn); chip.appendChild(del); recentWrap.appendChild(chip);
+  });
+}
 
-// Wikipedia resolver
-async function resolvePendingIfLandmark(){
-  if(pendingImage && !pendingImage.url && pendingImage.wikiTitle){
-    try{
-      const t=pendingImage.wikiTitle;
-      const api=`https://en.wikipedia.org/w/api.php?action=query&origin=*&prop=pageimages|info&inprop=url&format=json&piprop=original&titles=${encodeURIComponent(t)}`;
-      const res=await fetch(api); const j=await res.json();
-      const pages=j?.query?.pages||{}; const first=pages[Object.keys(pages)[0]];
-      const src=first?.original?.source; const fullurl=first?.fullurl;
-      if(src){ pendingImage.url=src; pendingImage.sourcePage=fullurl||src; }
-    }catch(e){ console.warn('Wikipedia fetch failed',e); }
+/* 위키이미지 해결 + 적용 */
+async function onApplyImage(){
+  try{
+    let url=null, sourcePage=null, title=pendingImage.title||'';
+    if(pendingImage.blobUrl){ url=pendingImage.blobUrl; }
+    else if(pendingImage.url){ url=pendingImage.url; }
+    else if(pendingImage.wikiTitle){
+      const {src, fullurl}=await resolveWikipediaImage(pendingImage.wikiTitle);
+      url=src; sourcePage=fullurl||src;
+      if(!url) throw new Error('위키 이미지 없음');
+    }
+    if(!url) throw new Error('유효한 이미지가 없음');
+    await safeApply(url, title, sourcePage);
+  }catch(e){
+    console.warn('apply image failed', e);
+    toast('⚠️ 이미지 정보를 불러오지 못함.');
   }
 }
 
-// Apply image
-function onApplyImage(){
-  const { url, title, blobUrl, sourcePage } = pendingImage;
-  const pick = blobUrl || url; if(!pick) return;
-  applyImage(pick, title||''); if(sourcePage) updateAttribution(sourcePage, title);
-  buildBoard(); toast('이미지를 적용함.');
-}
-
-// Reset
+/* 초기화 */
 function resetAll(){
   stopTimer(); started=false; solved=false; revealOn=false; timerEl.textContent='00:00.0';
   selDifficulty.value='normal'; const d=DIFFICULTIES.normal;
@@ -370,25 +339,33 @@ function resetAll(){
   [rows,cols]=PIECE_LAYOUTS[d.pieces]; optRotate.checked=d.rotate; rotating=d.rotate; optHint.checked=d.hint;
   optGrid.checked=true; optSound.checked=true; optTablet.checked=false;
   selCategory.value='flags'; populateImages(); const first=PRESETS.flags[0];
-  selImage.selectedIndex=0; pendingImage={url:first.url,title:first.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage();
+  selImage.selectedIndex=0; pendingImage={url:first.url,title:first.name}; onApplyImage();
   fileInput.value=''; urlInput.value=''; teamNameEl.value=''; setCountEl.value=6; selGrade.value='none'; currentGrade='none';
   reveal.style.display='none'; board.style.pointerEvents='auto'; btnReveal.textContent='정답 공개';
   setPanel.classList.add('hidden'); setList.innerHTML=''; spAccum.textContent='00:00.0';
-  if(isStudentMode){ toggleMode(false); } // 초기화 시 관리자 모드 복귀
+  if(isStudentMode){ toggleMode(false); }
   toast('초기화 완료함.');
 }
 
-// Student/Admin mode toggle
+/* 학생/관리자 모드 & 화면 제어 */
+function applyZoom(){ stageInner.style.setProperty('--stage-scale', zoom); document.documentElement.style.setProperty('--stage-scale', zoom); zoomLabel.textContent=`${Math.round(zoom*100)}%`; }
+function setZoom(n){ zoom=Math.min(Z_MAX,Math.max(Z_MIN,Math.round(n*100)/100)); applyZoom(); }
+function fitToScreen(){
+  const boardRect=stageInner.getBoundingClientRect();
+  const outerRect=stageOuter.getBoundingClientRect();
+  const s=Math.max(0.5,Math.min(2,Math.min((outerRect.height-8)/(boardRect.height||1),(outerRect.width-8)/(boardRect.width||1))));
+  setZoom(s);
+}
+function toggleFullscreen(){ const el=document.documentElement; if(!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.(); }
 function toggleMode(forceStudent){
-  if(typeof forceStudent === 'boolean') isStudentMode = forceStudent;
-  else isStudentMode = !isStudentMode;
+  if(typeof forceStudent==='boolean') isStudentMode=forceStudent; else isStudentMode=!isStudentMode;
   document.body.classList.toggle('student', isStudentMode);
   studentToolbar.classList.toggle('hidden', !isStudentMode);
-  if(isStudentMode){ setTimeout(()=>{ setZoom(1); fitToScreen(); }, 0); }
-  btnToggleMode.textContent = isStudentMode ? '관리자 모드' : '학생 모드';
+  btnToggleMode.textContent=isStudentMode?'관리자 모드':'학생 모드';
+  if(isStudentMode){ setTimeout(()=>{ setZoom(1); fitToScreen(); },0); }
 }
 
-// Quiz
+/* 퀴즈 */
 function openQuiz(){
   const info=QUIZ_INFO[imgTitle]||{}; const fact=info.fact?`💡 정보: ${info.fact}`:'이미지와 관련된 사실을 찾아봄.';
   const q=info.q?`❓ 질문: ${info.q}`:'이 이미지는 어느 나라와 관련 있나?'; const a=info.a?`✅ 정답: ${info.a}`:'(함께 확인함.)';
@@ -397,34 +374,25 @@ function openQuiz(){
 }
 function closeQuiz(){ quizOverlay.classList.add('hidden'); }
 
-// Events
-function initSelectors(){
+/* ==================== 이벤트 바인딩 ==================== */
+function populateAndBind(){
   populateImages(); renderRecent();
 
   selImage.addEventListener('change', ()=>{
-    const list=PRESETS[selCategory.value];
-    const optText=selImage.options[selImage.selectedIndex]?.text||'';
-    const item=list.find(i=> (i.url && i.url===selImage.value) || (i.wikiTitle && i.name===optText) ) || null;
-    if(item){ if(item.url){ pendingImage={url:item.url,title:item.name,blobUrl:null,wikiTitle:null,sourcePage:null}; }
-      else { pendingImage={url:'',title:item.name,blobUrl:null,wikiTitle:item.wikiTitle,sourcePage:null}; } }
-    else { pendingImage={url:selImage.value,title:'',blobUrl:null,wikiTitle:null,sourcePage:null}; }
+    const opt=selImage.options[selImage.selectedIndex]; if(!opt) return;
+    const kind=opt.dataset.kind;
+    if(kind==='url'){ pendingImage={url:opt.value,title:opt.text}; }
+    else{ pendingImage={wikiTitle:opt.value,title:opt.text}; }
   });
+  selCategory.addEventListener('change', ()=>{ populateImages(); const opt=selImage.options[0]; if(!opt) return; const kind=opt.dataset.kind; pendingImage=(kind==='url')?{url:opt.value,title:opt.text}:{wikiTitle:opt.value,title:opt.text}; });
 
-  selCategory.addEventListener('change', ()=>{
-    populateImages(); const list=PRESETS[selCategory.value];
-    if(list && list.length){
-      if(list[0].url){ selImage.value=list[0].url; pendingImage={url:list[0].url,title:list[0].name,blobUrl:null,wikiTitle:null,sourcePage:null}; }
-      else { selImage.selectedIndex=0; pendingImage={url:'',title:list[0].name,blobUrl:null,wikiTitle:list[0].wikiTitle,sourcePage:null}; }
-    }
-  });
-
-  fileInput.addEventListener('change',(e)=>{ const f=e.target.files?.[0]; if(!f) return; const url=URL.createObjectURL(f); pendingImage={url,title:f.name,blobUrl:url,wikiTitle:null,sourcePage:null}; });
-  urlInput.addEventListener('change',()=>{ if(!urlInput.value) return; pendingImage={url:urlInput.value,title:'사용자 URL',blobUrl:null,wikiTitle:null,sourcePage:null}; });
-  btnApplyImage.addEventListener('click', async ()=>{ await resolvePendingIfLandmark(); onApplyImage(); });
+  fileInput.addEventListener('change',e=>{ const f=e.target.files?.[0]; if(!f) return; const url=URL.createObjectURL(f); pendingImage={blobUrl:url,title:f.name}; });
+  urlInput.addEventListener('change',()=>{ if(!urlInput.value) return; pendingImage={url:urlInput.value,title:'사용자 URL'}; });
+  btnApplyImage.addEventListener('click', onApplyImage);
 
   document.querySelectorAll('input[name="pieces"]').forEach(r=> r.addEventListener('change', ()=>{ buildBoard(); markCustomIfChanged(); }));
   optHint.addEventListener('change', ()=>{ hint.classList.toggle('hide', !optHint.checked); markCustomIfChanged(); });
-  optGrid.addEventListener('change', ()=>{ Array.from(board.children).forEach(t=> t.style.border = optGrid.checked ? '1px solid rgba(0,0,0,.08)' : 'none'); });
+  optGrid.addEventListener('change', ()=>{ [...board.children].forEach(t=> t.style.border=optGrid.checked?'1px solid rgba(0,0,0,.08)':'none'); });
   optRotate.addEventListener('change', ()=>{ rotating=optRotate.checked; buildBoard(); markCustomIfChanged(); });
   optTablet.addEventListener('change', ()=>{ document.body.classList.toggle('tablet', optTablet.checked); buildBoard(); });
 
@@ -439,42 +407,37 @@ function initSelectors(){
   btnHintFlash.addEventListener('click', flashHint);
   btnQuiz.addEventListener('click', openQuiz);
   btnQuizClose.addEventListener('click', closeQuiz);
-  quizOverlay.addEventListener('click',(e)=>{ if(e.target===quizOverlay) closeQuiz(); });
+  quizOverlay.addEventListener('click',e=>{ if(e.target===quizOverlay) closeQuiz(); });
 
   btnSetStart.addEventListener('click', startSet);
   btnSetStop.addEventListener('click', stopSet);
-
   btnClearRecent.addEventListener('click', clearAllRecent);
 
-  // 학생 모드: 화면 제어
   btnToggleMode.addEventListener('click', ()=> toggleMode());
-  btnZoomOut.addEventListener('click', ()=> setZoom(zoom - Z_STEP));
-  btnZoomIn.addEventListener('click', ()=> setZoom(zoom + Z_STEP));
-  btnZoomReset.addEventListener('click', ()=> setZoom(1));
-  btnZoomFit.addEventListener('click', fitToScreen);
-  btnFullscreen.addEventListener('click', toggleFullscreen);
+  btnZoomOut?.addEventListener('click', ()=> setZoom(zoom - Z_STEP));
+  btnZoomIn?.addEventListener('click', ()=> setZoom(zoom + Z_STEP));
+  btnZoomReset?.addEventListener('click', ()=> setZoom(1));
+  btnZoomFit?.addEventListener('click', fitToScreen);
+  btnFullscreen?.addEventListener('click', toggleFullscreen);
 
-  // 단축키: Ctrl/Cmd +/−, 0, F
   window.addEventListener('keydown', (e)=>{
-    const mod = e.ctrlKey || e.metaKey;
-    if(!isStudentMode) return;
-    if(mod && (e.key==='=' || e.key==='+')){ e.preventDefault(); setZoom(zoom + Z_STEP); }
-    if(mod && (e.key==='-' )){ e.preventDefault(); setZoom(zoom - Z_STEP); }
-    if(mod && (e.key==='0')){ e.preventDefault(); setZoom(1); }
-    if(!mod && (e.key==='f' || e.key==='F')){ e.preventDefault(); toggleFullscreen(); }
+    const mod=e.ctrlKey||e.metaKey; if(!isStudentMode) return;
+    if(mod && (e.key==='='||e.key==='+')){ e.preventDefault(); setZoom(zoom+Z_STEP); }
+    if(mod && e.key==='-'){ e.preventDefault(); setZoom(zoom-Z_STEP); }
+    if(mod && e.key==='0'){ e.preventDefault(); setZoom(1); }
+    if(!mod && (e.key==='f'||e.key==='F')){ e.preventDefault(); toggleFullscreen(); }
   });
-
-  // 창 크기 변경 시 맞춤 유지
   window.addEventListener('resize', ()=>{ if(isStudentMode) fitToScreen(); });
 }
 
+/* ==================== 초기화 ==================== */
 function init(){
-  applyImage(imgURL, imgTitle);
-  initSelectors();
+  // 기본 이미지 적용
+  safeApply(imgURL, imgTitle, imgURL);
+  populateAndBind();
   applyDifficulty('normal');
   applyTheme('default');
   buildBoard();
   applyZoom();
 }
-
 window.addEventListener('load', init);
