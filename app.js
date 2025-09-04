@@ -63,11 +63,11 @@ const GRADE_PRESETS = {
 
 // 퀴즈 데이터(샘플)
 const QUIZ_INFO = {
-  '대한민국': { fact:'태극기는 태극과 4괘로 구성돼요.', q:'대한민국 수도는?', a:'서울' },
-  '일본': { fact:'붉은 원은 태양을 뜻해요.', q:'일본의 수도는?', a:'도쿄' },
-  '미국': { fact:'별 50개는 50개 주를 뜻해요.', q:'미국의 수도는?', a:'워싱턴 D.C.' },
-  '대한민국 · 경복궁': { fact:'조선의 법궁.', q:'어느 도시에 있나요?', a:'서울' },
-  '프랑스 · 에펠탑': { fact:'1889년 만국박람회.', q:'어느 도시에 있나요?', a:'파리' }
+  '대한민국': { fact:'태극기는 태극과 4괘로 구성됨.', q:'대한민국 수도는?', a:'서울' },
+  '일본': { fact:'붉은 원은 태양을 뜻함.', q:'일본의 수도는?', a:'도쿄' },
+  '미국': { fact:'별 50개는 50개 주를 뜻함.', q:'미국의 수도는?', a:'워싱턴 D.C.' },
+  '대한민국 · 경복궁': { fact:'조선의 법궁.', q:'어느 도시에 있나?', a:'서울' },
+  '프랑스 · 에펠탑': { fact:'1889년 만국박람회.', q:'어느 도시에 있나?', a:'파리' }
 };
 
 // ---------- State ----------
@@ -77,18 +77,19 @@ let rows = 3, cols = 4;
 let rotating = false;
 let started = false, solved = false;
 let timerInterval = null, t0 = 0;
-let order = [];
 let revealOn = false;
 
-// Set mode
 let setActive = false; let setQueue = []; let setTimes = []; let setIdx = 0; let setAccum = 0; let teamName = '';
 let currentGrade = 'none';
+let isStudentMode = false;
 
 // pending image
 let pendingImage = { url: imgURL, title: imgTitle, blobUrl: null, wikiTitle: null, sourcePage: null };
 
-// DOM
+// DOM helpers
 const $ = (id)=>document.getElementById(id);
+
+// DOM refs
 const selCategory = $('selCategory'), selImage = $('selImage');
 const fileInput = $('fileInput'), urlInput = $('urlInput'), btnApplyImage = $('btnApplyImage');
 
@@ -105,13 +106,12 @@ const setPanel = $('setPanel'), spTeam = $('spTeam'), spProg = $('spProg'), spAc
 
 const btnNew = $('btnNew'), btnShuffle = $('btnShuffle'), btnReset = $('btnReset'), btnReveal = $('btnReveal'),
       btnHintFlash = $('btnHintFlash'), btnQuiz = $('btnQuiz'), btnClearRecent = $('btnClearRecent');
+const btnToggleMode = $('btnToggleMode');
 
 const quizOverlay = $('quizOverlay'), quizBody = $('quizBody'), btnQuizClose = $('btnQuizClose');
 
-let kbSelected = null;
-
 // ---------- Utils ----------
-function toast(msg){ const el = $('toast'); el.textContent = msg || '적용되었습니다.'; el.style.display='block'; setTimeout(()=> el.style.display='none', 1400); }
+function toast(msg){ const el = $('toast'); el.textContent = msg || '적용됨.'; el.style.display='block'; setTimeout(()=> el.style.display='none', 1400); }
 function fmt(ms){ const t=Math.max(0,ms|0); const m=(t/60000|0); const s=(t%60000/1000|0); const d=(t%1000/100|0); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`; }
 function keyForBest(){ return `${imgURL}|${rows}x${cols}|rot:${rotating}`; }
 function loadBest(){ const v=localStorage.getItem(keyForBest()); bestEl.textContent=v?fmt(Number(v)):'—'; }
@@ -161,12 +161,16 @@ function applyImage(url, title){
 }
 
 function buildBoard(){
+  const totalRowsCols = document.querySelector('input[name="pieces"]:checked').value;
+  [rows, cols] = PIECE_LAYOUTS[Number(totalRowsCols)];
   board.style.gridTemplateColumns=`repeat(${cols},1fr)`;
   board.style.gridTemplateRows=`repeat(${rows},1fr)`;
-  const total=rows*cols; order=Array.from({length:total},(_,i)=>i);
-  for(let i=total-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [order[i],order[j]]=[order[j],order[i]]; }
-  board.innerHTML='';
+
+  const total=rows*cols;
   const rects=[]; for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) rects.push({r,c});
+  const order=[...Array(total).keys()].sort(()=>Math.random()-0.5);
+
+  board.innerHTML='';
   order.forEach((srcIdx,posIdx)=>{
     const {r,c}=rects[srcIdx]; const tile=document.createElement('div');
     tile.className='tile bg-slate-100'; tile.draggable=!optTablet.checked; tile.tabIndex=0;
@@ -183,7 +187,7 @@ function buildBoard(){
   hint.classList.toggle('hide', !optHint.checked);
   reveal.style.display = revealOn ? 'block':'none';
   stopTimer(); started=false; solved=false; timerEl.textContent='00:00.0'; kbSelected=null;
-  setStatus('타일을 드래그 또는 탭-투-스왑으로 바꿔 보세요.');
+  setStatus('타일을 드래그 또는 탭-스왑으로 바꿔 보세요.');
 }
 
 function addDnD(tile){
@@ -238,7 +242,7 @@ function checkSolved(){
 function flashHint(){ hintFlash.style.backgroundImage=`url("${imgURL}")`; hintFlash.classList.remove('hidden'); setTimeout(()=>hintFlash.classList.add('hidden'),3000); }
 
 // Reveal
-function toggleReveal(){ revealOn=!revealOn; reveal.style.display=revealOn?'block':'none'; board.style.pointerEvents=revealOn?'none':'auto'; btnReveal.textContent=revealOn?'정답 숨기기':'정답 공개'; setStatus(revealOn?'정답을 표시 중입니다.':'퍼즐 진행 중'); }
+function toggleReveal(){ revealOn=!revealOn; reveal.style.display=revealOn?'block':'none'; board.style.pointerEvents=revealOn?'none':'auto'; btnReveal.textContent=revealOn?'정답 숨기기':'정답 공개'; setStatus(revealOn?'정답을 표시 중임.':'퍼즐 진행 중.'); }
 
 // Difficulty/Theme
 function applyDifficulty(name){ if(name==='custom') return; const d=DIFFICULTIES[name];
@@ -248,18 +252,21 @@ function markCustomIfChanged(){ const cur={pieces:Number(document.querySelector(
   for(const [k,v] of Object.entries(DIFFICULTIES)){ if(cur.pieces===v.pieces && cur.rotate===v.rotate && cur.hint===v.hint){ selDifficulty.value=k; return; } } selDifficulty.value='custom'; }
 function applyTheme(v){ document.body.classList.remove('theme-pastel','theme-contrast','theme-chalk'); if(v==='pastel')document.body.classList.add('theme-pastel'); else if(v==='contrast')document.body.classList.add('theme-contrast'); else if(v==='chalk')document.body.classList.add('theme-chalk'); }
 
-// Grade preset
+// Grade preset (※ 테마를 더 이상 자동 변경하지 않음)
 function applyGradePreset(key){
   currentGrade=key; const gp=GRADE_PRESETS[key]; if(!gp) return;
   const pieceVal=gp.pieces; document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked=(Number(r.value)===pieceVal));
   [rows,cols]=PIECE_LAYOUTS[pieceVal]; optRotate.checked=gp.rotate; rotating=gp.rotate; optHint.checked=gp.hint;
   if(gp.category==='mixed'){ selCategory.value='flags'; } else { selCategory.value=gp.category; }
-  populateImages(); setCountEl.value=gp.setCount; selTheme.value=(key==='g56')?'contrast':'pastel'; applyTheme(selTheme.value);
+  populateImages();
+  setCountEl.value=gp.setCount;
+
   if(Array.isArray(gp.items)){ const name=gp.items[0]; const item=findPresetByName(name);
     if(item){ if(item.url){ pendingImage={url:item.url,title:item.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); }
       else { pendingImage={url:'',title:item.name,blobUrl:null,wikiTitle:item.wikiTitle,sourcePage:null}; resolvePendingIfLandmark().then(onApplyImage); } }
   } else { pendingImage={url:PRESETS.flags[0].url,title:PRESETS.flags[0].name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); }
 }
+
 function resolveGradeQueue(){ const gp=GRADE_PRESETS[currentGrade]; if(!gp) return null; if(Array.isArray(gp.items)) return gp.items.map(findPresetByName).filter(Boolean);
   const union=[...PRESETS.flags,...PRESETS.landmarks]; const count=gp.setCount||6; const pool=union.slice(); const out=[]; for(let i=0;i<count;i++){ if(pool.length===0) break; const j=(Math.random()*pool.length)|0; out.push(pool.splice(j,1)[0]); } return out; }
 function findPresetByName(name){ return PRESETS.flags.find(x=>x.name===name)||PRESETS.landmarks.find(x=>x.name===name)||null; }
@@ -272,30 +279,31 @@ function startSet(){ if(setActive) return; const n=Math.max(2,Math.min(10,Number
   setList.innerHTML=''; setPanel.classList.remove('hidden');
   const it=setQueue[0]; if(it.wikiTitle){ pendingImage={url:'',title:it.name,blobUrl:null,wikiTitle:it.wikiTitle,sourcePage:null}; resolvePendingIfLandmark().then(onApplyImage); }
   else { pendingImage={url:it.url,title:it.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); }
-  setStatus('세트 모드: 첫 퍼즐을 시작합니다.');
+  setStatus('세트 모드 시작함.');
 }
-function stopSet(){ if(!setActive) return; setActive=false; setStatus(`세트 종료. 팀 ${teamName} · 누적 ${fmt(setAccum)}`); }
+function stopSet(){ if(!setActive) return; setActive=false; setStatus(`세트 종료함. 팀 ${teamName} · 누적 ${fmt(setAccum)}`); }
 function onSetSolved(elapsed){
   setTimes.push(elapsed); setAccum+=elapsed; const li=document.createElement('li'); li.textContent=`${imgTitle} — ${fmt(elapsed)}`; setList.appendChild(li);
   spAccum.textContent=fmt(setAccum); setIdx++;
   if(setIdx<setQueue.length){ spProg.textContent=`${setIdx+1}/${setQueue.length}`; setTimeout(()=>{ const it=setQueue[setIdx];
     if(it.wikiTitle){ pendingImage={url:'',title:it.name,blobUrl:null,wikiTitle:it.wikiTitle,sourcePage:null}; resolvePendingIfLandmark().then(onApplyImage); }
     else { pendingImage={url:it.url,title:it.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); } },700);
-  } else { setActive=false; spProg.textContent=`${setQueue.length}/${setQueue.length}`; const liTotal=document.createElement('li'); liTotal.className='mt-1 font-semibold'; liTotal.textContent=`합계 — ${fmt(setAccum)}`; setList.appendChild(liTotal); setStatus(`세트 완료! 팀 ${teamName} · 누적 ${fmt(setAccum)}`,true); }
+  } else { setActive=false; spProg.textContent=`${setQueue.length}/${setQueue.length}`; const liTotal=document.createElement('li'); liTotal.className='mt-1 font-semibold'; liTotal.textContent=`합계 — ${fmt(setAccum)}`; setList.appendChild(liTotal); setStatus(`세트 완료함. 팀 ${teamName} · 누적 ${fmt(setAccum)}`,true); }
 }
 
 // Recent images
 function saveRecent(url,title){ try{ const k='puzzle_recent_imgs'; const obj=JSON.parse(localStorage.getItem(k)||'[]'); const filtered=obj.filter(it=>it.url!==url); filtered.unshift({url,title}); localStorage.setItem(k,JSON.stringify(filtered.slice(0,8))); }catch(e){} }
 function loadRecent(){ try{ return JSON.parse(localStorage.getItem('puzzle_recent_imgs')||'[]'); }catch(e){ return []; } }
 function deleteRecent(url){ try{ const k='puzzle_recent_imgs'; const obj=JSON.parse(localStorage.getItem(k)||'[]'); localStorage.setItem(k,JSON.stringify(obj.filter(it=>it.url!==url))); renderRecent(); }catch(e){} }
-function clearAllRecent(){ try{ localStorage.removeItem('puzzle_recent_imgs'); renderRecent(); toast('최근 이미지가 모두 삭제되었습니다'); }catch(e){} }
+function clearAllRecent(){ try{ localStorage.removeItem('puzzle_recent_imgs'); renderRecent(); toast('최근 이미지를 모두 삭제함.'); }catch(e){} }
 function renderRecent(){ const arr=loadRecent(); recentWrap.innerHTML=''; arr.forEach(it=>{ const chip=document.createElement('div'); chip.className='flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-300 bg-white';
   const btn=document.createElement('button'); btn.className='underline'; btn.textContent=it.title||it.url.split('/').pop(); btn.title=it.url;
   btn.addEventListener('click',()=>{ pendingImage={url:it.url,title:it.title||'',blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage(); });
-  const del=document.createElement('button'); del.textContent='×'; del.className='ml-1 w-4 h-4 leading-3 text-slate-500 hover:text-red-600'; del.title='삭제'; del.addEventListener('click',()=>deleteRecent(it.url));
+  const del=document.createElement('button'); del.textContent='×'; del.className='ml-1 w-4 h-4 leading-3 text-red-600 hover:text-red-700'; del.title='삭제';
+  del.addEventListener('click',()=>deleteRecent(it.url));
   chip.appendChild(btn); chip.appendChild(del); recentWrap.appendChild(chip); }); }
 
-// Wikipedia resolver (원본 이미지 + 문서 URL)
+// Wikipedia resolver
 async function resolvePendingIfLandmark(){
   if(pendingImage && !pendingImage.url && pendingImage.wikiTitle){
     try{
@@ -314,30 +322,41 @@ function onApplyImage(){
   const { url, title, blobUrl, sourcePage } = pendingImage;
   const pick = blobUrl || url; if(!pick) return;
   applyImage(pick, title||''); if(sourcePage) updateAttribution(sourcePage, title);
-  buildBoard(); toast('이미지를 적용했습니다');
+  buildBoard(); toast('이미지를 적용함.');
 }
 
 // Reset
 function resetAll(){
   stopTimer(); started=false; solved=false; revealOn=false; timerEl.textContent='00:00.0';
-  selTheme.value='default'; applyTheme('default');
+  // 테마는 유지(교사 선택 존중)
   selDifficulty.value='normal'; const d=DIFFICULTIES.normal;
   document.querySelectorAll('input[name="pieces"]').forEach(r=> r.checked=(Number(r.value)===d.pieces));
   [rows,cols]=PIECE_LAYOUTS[d.pieces]; optRotate.checked=d.rotate; rotating=d.rotate; optHint.checked=d.hint;
   optGrid.checked=true; optSound.checked=true; optTablet.checked=false;
   selCategory.value='flags'; populateImages(); const first=PRESETS.flags[0];
   selImage.selectedIndex=0; pendingImage={url:first.url,title:first.name,blobUrl:null,wikiTitle:null,sourcePage:null}; onApplyImage();
-  fileInput.value=''; urlInput.value=''; teamNameEl.value=''; setCountEl.value=3; selGrade.value='none'; currentGrade='none';
+  fileInput.value=''; urlInput.value=''; teamNameEl.value=''; setCountEl.value=6; selGrade.value='none'; currentGrade='none';
   reveal.style.display='none'; board.style.pointerEvents='auto'; btnReveal.textContent='정답 공개';
   setPanel.classList.add('hidden'); setList.innerHTML=''; spAccum.textContent='00:00.0';
-  toast('초기화 완료');
+  if(isStudentMode){ toggleMode(false); } // 초기화 시 관리자 모드로 복귀
+  toast('초기화 완료함.');
+}
+
+// Student/Admin mode toggle
+function toggleMode(forceStudent){
+  if(typeof forceStudent === 'boolean') isStudentMode = forceStudent;
+  else isStudentMode = !isStudentMode;
+  document.body.classList.toggle('student', isStudentMode);
+  btnToggleMode.textContent = isStudentMode ? '관리자 모드' : '학생 모드';
 }
 
 // Quiz
-function openQuiz(){ const info=QUIZ_INFO[imgTitle]||{}; const fact=info.fact?`💡 정보: ${info.fact}`:'이미지와 관련된 사실을 찾아보세요!';
-  const q=info.q?`❓ 질문: ${info.q}`:'이 이미지와 관련된 나라는 어디일까요?'; const a=info.a?`✅ 정답: ${info.a}`:'(직접 찾아본 후 함께 확인해요!)';
+function openQuiz(){
+  const info=QUIZ_INFO[imgTitle]||{}; const fact=info.fact?`💡 정보: ${info.fact}`:'이미지와 관련된 사실을 찾아봄.';
+  const q=info.q?`❓ 질문: ${info.q}`:'이 이미지는 어느 나라와 관련 있나?'; const a=info.a?`✅ 정답: ${info.a}`:'(함께 확인함.)';
   quizBody.innerHTML=`<p>${fact}</p><p>${q}</p><details class="mt-2"><summary class="cursor-pointer select-none">정답 보기</summary><p class="mt-1">${a}</p></details>`;
-  quizOverlay.classList.remove('hidden'); }
+  quizOverlay.classList.remove('hidden');
+}
 function closeQuiz(){ quizOverlay.classList.add('hidden'); }
 
 // Events
@@ -361,11 +380,11 @@ function initSelectors(){
     }
   });
 
-  fileInput.addEventListener('change',(e)=>{ const f=e.target.files?.[0]; if(!f) return; const url=URL.createObjectURL(f); pendingImage={url,urlTitle:f.name,title:f.name,blobUrl:url,wikiTitle:null,sourcePage:null}; });
+  fileInput.addEventListener('change',(e)=>{ const f=e.target.files?.[0]; if(!f) return; const url=URL.createObjectURL(f); pendingImage={url,title:f.name,blobUrl:url,wikiTitle:null,sourcePage:null}; });
   urlInput.addEventListener('change',()=>{ if(!urlInput.value) return; pendingImage={url:urlInput.value,title:'사용자 URL',blobUrl:null,wikiTitle:null,sourcePage:null}; });
   btnApplyImage.addEventListener('click', async ()=>{ await resolvePendingIfLandmark(); onApplyImage(); });
 
-  document.querySelectorAll('input[name="pieces"]').forEach(r=> r.addEventListener('change', ()=>{ const v=Number(document.querySelector('input[name="pieces"]:checked').value); [rows,cols]=PIECE_LAYOUTS[v]; buildBoard(); markCustomIfChanged(); }));
+  document.querySelectorAll('input[name="pieces"]').forEach(r=> r.addEventListener('change', ()=>{ buildBoard(); markCustomIfChanged(); }));
   optHint.addEventListener('change', ()=>{ hint.classList.toggle('hide', !optHint.checked); markCustomIfChanged(); });
   optGrid.addEventListener('change', ()=>{ Array.from(board.children).forEach(t=> t.style.border = optGrid.checked ? '1px solid rgba(0,0,0,.08)' : 'none'); });
   optRotate.addEventListener('change', ()=>{ rotating=optRotate.checked; buildBoard(); markCustomIfChanged(); });
@@ -388,13 +407,14 @@ function initSelectors(){
   btnSetStop.addEventListener('click', stopSet);
 
   btnClearRecent.addEventListener('click', clearAllRecent);
+
+  btnToggleMode.addEventListener('click', ()=> toggleMode());
 }
 
 function init(){
   applyImage(imgURL, imgTitle);
   initSelectors();
   applyDifficulty('normal');
-  applyTheme('default');
   buildBoard();
 }
 
