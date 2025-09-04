@@ -12,31 +12,54 @@
     <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
       <div>
         <h1 class="text-2xl md:text-3xl font-bold">세계 국기·랜드마크 퍼즐</h1>
-        <p class="text-sm text-slate-500">설정 패널은 오른쪽, 이미지는 “저장”을 누르면 적용됨.</p>
+        <p class="text-sm text-slate-500">오른쪽 설정에서 이미지를 고르고 “저장”을 누르면 적용됨.</p>
       </div>
       <div class="flex gap-2 flex-wrap items-center">
         <button id="btnToggleMode" class="px-3 py-2 rounded-xl bg-black/80 text-white hover:bg-black">학생 모드</button>
         <button id="btnNew" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 btn-primary">새 퍼즐</button>
         <button id="btnShuffle" class="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800">섞기</button>
         <button id="btnReset" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">초기화</button>
-        <button id="btnHintFlash" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700">힌트 보기(3초)</button>
+        <button id="btnHintFlash" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700">힌트(3초)</button>
         <button id="btnQuiz" class="px-4 py-2 rounded-xl bg-teal-600 text-white hover:bg-teal-700">퀴즈</button>
         <button id="btnReveal" class="px-4 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600">정답 공개</button>
       </div>
     </header>
 
+    <!-- 학생 모드 전용 상단 툴바 -->
+    <div id="studentToolbar" class="hidden mb-3">
+      <div class="card rounded-xl px-3 py-2 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-500 mr-1">화면 제어</span>
+        <button id="btnZoomFit" class="px-2 py-1 rounded border">맞춤</button>
+        <button id="btnZoomOut" class="px-2 py-1 rounded border">−</button>
+        <button id="btnZoomReset" class="px-2 py-1 rounded border">100%</button>
+        <button id="btnZoomIn" class="px-2 py-1 rounded border">+</button>
+        <div class="text-xs text-slate-500 ml-2">배율: <span id="zoomLabel">100%</span></div>
+        <div class="flex-1"></div>
+        <button id="btnFullscreen" class="px-2 py-1 rounded bg-slate-900 text-white">전체화면</button>
+        <span class="text-xs text-slate-500">단축키: Ctrl/Cmd +/−, 0, F</span>
+      </div>
+    </div>
+
     <section id="layout" class="grid md:grid-cols-[1fr_420px] gap-6">
       <!-- 보드 -->
       <section class="space-y-3 order-1">
         <div id="imgTitle" class="text-sm text-slate-500"></div>
-        <div id="boardWrap" class="relative card rounded-2xl shadow p-2">
-          <div id="hint" class="hint-image rounded-xl"></div>
-          <div id="reveal" class="reveal-image rounded-xl"></div>
-          <div id="board" class="grid-board rounded-xl"></div>
-          <div id="hintFlash" class="hint-flash hidden"></div>
-          <a id="attribution" class="attribution-badge hidden" href="#" target="_blank" rel="noopener noreferrer"></a>
+
+        <!-- 확대/축소용 스테이지 래퍼 -->
+        <div id="stageOuter" class="relative">
+          <div id="stageInner" class="origin-top-left">
+            <div id="boardWrap" class="relative card rounded-2xl shadow p-2">
+              <div id="hint" class="hint-image rounded-xl"></div>
+              <div id="reveal" class="reveal-image rounded-xl"></div>
+              <div id="board" class="grid-board rounded-xl"></div>
+              <div id="hintFlash" class="hint-flash hidden"></div>
+              <a id="attribution" class="attribution-badge hidden" href="#" target="_blank" rel="noopener noreferrer"></a>
+            </div>
+          </div>
         </div>
+
         <div id="status" class="text-sm"></div>
+
         <div id="setPanel" class="card rounded-2xl shadow p-3 hidden">
           <div class="flex items-center justify-between mb-2">
             <div class="text-sm"><span class="font-semibold">세트 진행</span> · 팀: <span id="spTeam"></span> · <span id="spProg"></span></div>
@@ -75,7 +98,7 @@
             </div>
             <div class="flex items-center gap-2 mt-1">
               <button id="btnApplyImage" class="px-2.5 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm">저장</button>
-              <span class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장을 누름.</span>
+              <span class="text-xs text-slate-500">* 선택·업로드·URL 입력 후 저장.</span>
             </div>
             <div class="mt-2">
               <div class="flex items-center justify-between">
@@ -94,9 +117,9 @@
             <div>
               <label class="block text-xs text-slate-500 mb-1">난이도 프리셋</label>
               <select id="selDifficulty" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
-                <option value="easy">쉬움 (8·회전X·힌트O)</option>
-                <option value="normal" selected>보통 (12·회전X·힌트O)</option>
-                <option value="hard">어려움 (16·회전O·힌트X)</option>
+                <option value="easy">쉬움 (8)</option>
+                <option value="normal" selected>보통 (12)</option>
+                <option value="hard">어려움 (16, 회전)</option>
                 <option value="custom">사용자 지정</option>
               </select>
             </div>
@@ -105,8 +128,8 @@
               <select id="selTheme" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3">
                 <option value="default">기본</option>
                 <option value="pastel">파스텔</option>
-                <option value="contrast">하이컨트라스트(가독 개선)</option>
-                <option value="chalk">칠판(교실·가독 개선)</option>
+                <option value="contrast">하이컨트라스트</option>
+                <option value="chalk">칠판(교실)</option>
               </select>
             </div>
           </div>
@@ -120,15 +143,15 @@
           </div>
         </section>
 
-        <!-- 옵션 & 타이머 -->
+        <!-- 옵션 & 타이머 (옵션 라벨 간결화 + 정렬) -->
         <section class="sec">
           <div class="sec-title mb-2"><span class="badge green">옵션</span> & 타이머</div>
-          <div class="space-y-2">
-            <label class="flex items-center gap-2 text-sm"><input id="optHint" type="checkbox" checked> 힌트 사진 표시함.</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optGrid" type="checkbox" checked> 타일 경계선 보임.</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optRotate" type="checkbox"> 회전 난이도 사용함.</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optSound" type="checkbox" checked> 완료 시 축하음 재생함.</label>
-            <label class="flex items-center gap-2 text-sm"><input id="optTablet" type="checkbox"> 태블릿 모드(탭-스왑) 사용함.</label>
+          <div class="options-grid">
+            <label class="opt"><input id="optHint" type="checkbox" checked><span>힌트 사진</span></label>
+            <label class="opt"><input id="optGrid" type="checkbox" checked><span>타일 경계선</span></label>
+            <label class="opt"><input id="optRotate" type="checkbox"><span>회전 난이도</span></label>
+            <label class="opt"><input id="optSound" type="checkbox" checked><span>완료 시 축하음</span></label>
+            <label class="opt"><input id="optTablet" type="checkbox"><span>태블릿 모드</span></label>
           </div>
           <div class="grid grid-cols-2 gap-3 items-end mt-3">
             <div class="space-y-1">
@@ -162,7 +185,7 @@
               <input id="setCount" type="number" min="2" max="10" value="6" class="w-full rounded-lg border-slate-300 text-sm py-2.5 px-3" />
             </div>
           </div>
-          <p class="text-xs text-slate-500 mt-2">학년 프리셋을 고르면 난이도·조각수·회전·힌트·카테고리·세트를 자동 적용함.</p>
+          <p class="text-xs text-slate-500 mt-2">학년 프리셋 선택 시 난이도·조각수·회전·힌트·카테고리·세트를 자동 적용함.</p>
         </section>
 
         <!-- 세트 모드 -->
